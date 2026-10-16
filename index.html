@@ -1,0 +1,748 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Website Change Detector</title>
+
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            padding: 24px;
+            font-family: Arial, sans-serif;
+            background: #f3f6fb;
+            color: #1f2937;
+        }
+
+        .container {
+            max-width: 1050px;
+            margin: auto;
+        }
+
+        header {
+            background: #1d4ed8;
+            color: white;
+            padding: 25px;
+            border-radius: 14px;
+            margin-bottom: 22px;
+        }
+
+        header h1 {
+            margin: 0 0 8px;
+        }
+
+        .card {
+            background: white;
+            padding: 22px;
+            border-radius: 12px;
+            margin-bottom: 20px;
+            box-shadow: 0 3px 12px #0000000b;
+        }
+
+        h2 {
+            margin-top: 0;
+            font-size: 21px;
+        }
+
+        input {
+            width: 100%;
+            padding: 12px;
+            margin: 7px 0 12px;
+            border: 1px solid #cbd5e1;
+            border-radius: 7px;
+            font-size: 15px;
+        }
+
+        button {
+            background: #2563eb;
+            color: white;
+            padding: 11px 16px;
+            border: 0;
+            border-radius: 7px;
+            cursor: pointer;
+            margin: 4px 4px 4px 0;
+            font-size: 14px;
+        }
+
+        button:hover {
+            background: #1d4ed8;
+        }
+
+        button.secondary {
+            background: #475569;
+        }
+
+        button:disabled {
+            opacity: 0.6;
+            cursor: wait;
+        }
+
+        .message {
+            margin-top: 12px;
+            overflow-wrap: anywhere;
+        }
+
+        .success {
+            color: #15803d;
+        }
+
+        .error {
+            color: #b91c1c;
+        }
+
+        .muted {
+            color: #64748b;
+            font-size: 14px;
+        }
+
+        .item {
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            padding: 14px;
+            margin: 10px 0;
+            overflow-wrap: anywhere;
+        }
+
+        .online {
+            color: #15803d;
+            font-weight: bold;
+        }
+
+        .offline {
+            color: #b91c1c;
+            font-weight: bold;
+        }
+
+        .table-wrap {
+            overflow-x: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 14px;
+        }
+
+        th, td {
+            padding: 10px;
+            text-align: left;
+            border-bottom: 1px solid #e2e8f0;
+            overflow-wrap: anywhere;
+        }
+
+        th {
+            background: #f8fafc;
+        }
+
+        footer {
+            text-align: center;
+            color: #64748b;
+            padding: 20px;
+        }
+
+        @media (max-width: 600px) {
+            body {
+                padding: 12px;
+            }
+
+            .card {
+                padding: 15px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+<div class="container">
+
+    <header>
+        <h1>Website Change Detector</h1>
+        <p>Check website content, monitor changes, and check uptime.</p>
+    </header>
+
+    <!-- Check website changes -->
+    <section class="card">
+        <h2>Check a Website</h2>
+        <form id="checkForm">
+            <label for="websiteUrl">Website URL</label>
+            <input
+                id="websiteUrl"
+                type="url"
+                placeholder="https://example.com"
+                required
+            >
+            <button id="checkButton" type="submit">Check Website</button>
+        </form>
+        <div id="checkMessage" class="message" aria-live="polite"></div>
+    </section>
+
+    <!-- Uptime monitor -->
+    <section class="card">
+        <h2>Website Uptime Monitor</h2>
+        <p class="muted">
+            Check whether a public website is online and view its response time.
+        </p>
+
+        <form id="uptimeForm">
+            <label for="uptimeUrl">Website URL</label>
+            <input
+                id="uptimeUrl"
+                type="url"
+                placeholder="https://example.com"
+                required
+            >
+            <button id="uptimeButton" type="submit">Check Uptime</button>
+            <button id="refreshUptimeButton" class="secondary" type="button">
+                Refresh Status
+            </button>
+        </form>
+
+        <div id="uptimeMessage" class="message" aria-live="polite"></div>
+
+        <h3>Uptime Status</h3>
+
+<div style="display: flex; gap: 12px; flex-wrap: wrap; margin: 15px 0;">
+    <div class="item" style="flex: 1; min-width: 120px;">
+        <p class="muted">Total Websites</p>
+        <h2 id="totalCount">0</h2>
+    </div>
+
+    <div class="item" style="flex: 1; min-width: 120px;">
+        <p class="muted">Online</p>
+        <h2 id="onlineCount" class="online">0</h2>
+    </div>
+
+    <div class="item" style="flex: 1; min-width: 120px;">
+        <p class="muted">Offline</p>
+        <h2 id="offlineCount" class="offline">0</h2>
+    </div>
+</div>
+
+<div id="uptimeStatus">
+    <p class="muted">Loading uptime status...</p>
+</div>
+        <div id="uptimeStatus">
+            <p class="muted">Loading uptime status...</p>
+        </div>
+
+        <h3>Uptime History</h3>
+        <button id="historyButton" class="secondary" type="button">
+            Load History for Entered URL
+        </button>
+        <div id="uptimeHistory"></div>
+    </section>
+
+    <!-- Monitored websites -->
+    <section class="card">
+        <h2>Monitored Websites</h2>
+        <button id="refreshWebsitesButton" class="secondary" type="button">
+            Refresh Websites
+        </button>
+        <div id="websitesList">Loading websites...</div>
+    </section>
+
+    <!-- Alerts -->
+    <section class="card">
+        <h2>Website Change Alerts</h2>
+        <button id="refreshAlertsButton" class="secondary" type="button">
+            Refresh Alerts
+        </button>
+        <button id="testChangeButton" type="button">
+            Create Test Alert
+        </button>
+        <div id="alertsList">Loading alerts...</div>
+    </section>
+
+    <!-- Change history -->
+    <section class="card">
+        <h2>Website Change History</h2>
+        <label for="historyUrl">Website URL for change history</label>
+        <input
+            id="historyUrl"
+            type="url"
+            placeholder="https://example.com"
+        >
+        <button id="changeHistoryButton" type="button">
+            Load Change History
+        </button>
+        <div id="changeHistory"></div>
+    </section>
+
+    <footer>Website Change Detector · Local Dashboard</footer>
+</div>
+
+<script>
+"use strict";
+
+const $ = (id) => document.getElementById(id);
+
+function showMessage(id, message, isError = false) {
+    const el = $(id);
+    el.textContent = message;
+    el.className = "message " + (isError ? "error" : "success");
+}
+
+function safeText(value) {
+    return value === null || value === undefined || value === ""
+        ? "—"
+        : String(value);
+}
+
+function makeItem(title, details) {
+    const item = document.createElement("div");
+    item.className = "item";
+
+    const heading = document.createElement("strong");
+    heading.textContent = title;
+    item.appendChild(heading);
+
+    const paragraph = document.createElement("p");
+    paragraph.textContent = details;
+    item.appendChild(paragraph);
+
+    return item;
+}
+
+async function api(url, options = {}) {
+    const response = await fetch(url, options);
+    const text = await response.text();
+
+    let data = null;
+    if (text) {
+        try {
+            data = JSON.parse(text);
+        } catch {
+            data = { detail: text };
+        }
+    }
+
+    if (!response.ok) {
+        const message = data && data.detail
+            ? data.detail
+            : "Request failed: HTTP " + response.status;
+        throw new Error(message);
+    }
+
+    return data;
+}
+
+function jsonPost(url, body = {}) {
+    return api(url, {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json"
+        },
+        body: JSON.stringify(body)
+    });
+}
+
+/* Check website for content changes */
+$("checkForm").addEventListener("submit", async (event) => {
+    event.preventDefault();
+
+    const url = $("websiteUrl").value.trim();
+    const button = $("checkButton");
+
+    button.disabled = true;
+    showMessage("checkMessage", "Checking website...");
+
+    try {
+        const result = await jsonPost("/check", { url });
+
+        showMessage(
+            "checkMessage",
+            result.message || "Website check completed."
+        );
+
+        await loadWebsites();
+        await loadAlerts();
+        await loadChangeHistory(url);
+        // Automatically refresh uptime status every 30 seconds
+        setInterval(() => {
+            loadUptimeStatus();
+        }, 30000);
+    } catch (error) {
+        showMessage("checkMessage", error.message, true);
+    } finally {
+        button.disabled = false;
+    }
+});
+
+/* Check uptime */
+$("uptimeForm").addEventListener("submit", async (event) => {
+    event.preventDefault();
+
+    const url = $("uptimeUrl").value.trim();
+    const button = $("uptimeButton");
+
+    button.disabled = true;
+    showMessage("uptimeMessage", "Checking website uptime...");
+
+    try {
+        // Send JSON body, not an empty request.
+        const result = await jsonPost("/uptime/check", { url });
+
+        const status = safeText(result.status || result.state);
+        const responseTime = result.response_time_ms;
+
+        let message = result.message || ("Status: " + status);
+
+        if (responseTime !== undefined && responseTime !== null) {
+            message += " | Response time: " + responseTime + " ms";
+        }
+
+        showMessage("uptimeMessage", message);
+
+        await loadUptimeStatus();
+        await loadUptimeHistory(url);
+    } catch (error) {
+        showMessage("uptimeMessage", error.message, true);
+    } finally {
+        button.disabled = false;
+    }
+});
+
+$("refreshUptimeButton").addEventListener("click", loadUptimeStatus);
+
+$("historyButton").addEventListener("click", async () => {
+    const url = $("uptimeUrl").value.trim();
+
+    if (!url) {
+        showMessage(
+            "uptimeMessage",
+            "Please enter a website URL first.",
+            true
+        );
+        return;
+    }
+
+    await loadUptimeHistory(url);
+});
+
+/* Load uptime status */
+/* Load uptime status */
+async function loadUptimeStatus() {
+    const container = $("uptimeStatus");
+    container.textContent = "Loading uptime status...";
+
+    try {
+        const data = await api("/uptime/status");
+
+        // API ke alag response formats ko support karein
+        const rows = Array.isArray(data)
+            ? data
+            : (
+                data && Array.isArray(data.websites)
+                    ? data.websites
+                    : (
+                        data && Array.isArray(data.results)
+                            ? data.results
+                            : []
+                    )
+            );
+
+        container.replaceChildren();
+        
+$("totalCount").textContent = rows.length;
+
+$("onlineCount").textContent = rows.filter((row) => {
+    const status = String(row.status || "").toUpperCase();
+    return status === "ONLINE" || status === "UP";
+}).length;
+
+$("offlineCount").textContent = rows.filter((row) => {
+    const status = String(row.status || "").toUpperCase();
+    return status !== "ONLINE" && status !== "UP";
+}).length;
+
+
+        if (rows.length === 0) {
+            container.textContent = "No uptime checks recorded yet.";
+            return;
+        }
+
+        rows.forEach((row) => {
+            const item = document.createElement("div");
+            item.className = "item";
+
+            const heading = document.createElement("strong");
+            heading.textContent = safeText(row.url);
+            item.appendChild(heading);
+
+            const status = String(row.status || "").toUpperCase();
+            const isOnline = status === "UP" || status === "ONLINE";
+
+            const statusLine = document.createElement("p");
+            statusLine.className = isOnline ? "online" : "offline";
+            statusLine.textContent =
+                "Status: " + (isOnline ? "ONLINE" : "OFFLINE");
+            item.appendChild(statusLine);
+
+            const httpLine = document.createElement("p");
+            httpLine.textContent =
+                "HTTP Status: " + safeText(row.http_status);
+            item.appendChild(httpLine);
+
+            const timeLine = document.createElement("p");
+            timeLine.textContent =
+                "Response Time: " +
+                (row.response_time_ms == null
+                    ? "—"
+                    : row.response_time_ms + " ms");
+            item.appendChild(timeLine);
+
+            const messageLine = document.createElement("p");
+            messageLine.textContent =
+                "Message: " + safeText(row.message);
+            item.appendChild(messageLine);
+
+            const checkedLine = document.createElement("p");
+            checkedLine.className = "muted";
+            checkedLine.textContent =
+                "Last Checked: " + safeText(row.checked_at);
+            item.appendChild(checkedLine);
+
+            const historyButton = document.createElement("button");
+            historyButton.textContent = "View History";
+
+            historyButton.addEventListener("click", () => {
+                $("uptimeUrl").value = row.url || "";
+                loadUptimeHistory(row.url || "");
+            });
+
+            item.appendChild(historyButton);
+            container.appendChild(item);
+        });
+
+    } catch (error) {
+        container.textContent =
+            "Could not load uptime status: " + error.message;
+    }
+}
+
+/* Load uptime history for one URL */
+async function loadUptimeHistory(url) {
+    const container = $("uptimeHistory");
+    container.textContent = "Loading uptime history...";
+
+    if (!url) {
+        container.textContent = "Please enter a website URL.";
+        return;
+    }
+
+    try {
+        const data = await api(
+            "/uptime/history?url=" + encodeURIComponent(url)
+        );
+
+        const rows = Array.isArray(data)
+            ? data
+            : (data && Array.isArray(data.history) ? data.history : []);
+
+        container.replaceChildren();
+
+        if (rows.length === 0) {
+            container.textContent = "No uptime history found for this URL.";
+            return;
+        }
+
+        const tableWrap = document.createElement("div");
+        tableWrap.className = "table-wrap";
+
+        const table = document.createElement("table");
+        table.innerHTML =
+            "<thead><tr><th>Status</th><th>HTTP</th>" +
+            "<th>Response (ms)</th><th>Checked At</th></tr></thead>";
+
+        const tbody = document.createElement("tbody");
+
+        rows.forEach((row) => {
+            const tr = document.createElement("tr");
+
+            [
+                row.status,
+                row.http_status,
+                row.response_time_ms,
+                row.checked_at
+            ].forEach((value) => {
+                const td = document.createElement("td");
+                td.textContent = safeText(value);
+                tr.appendChild(td);
+            });
+
+            tbody.appendChild(tr);
+        });
+
+        table.appendChild(tbody);
+        tableWrap.appendChild(table);
+        container.appendChild(tableWrap);
+    } catch (error) {
+        container.textContent = "Could not load uptime history: " +
+            error.message;
+    }
+}
+
+/* List websites being monitored */
+async function loadWebsites() {
+    const container = $("websitesList");
+    container.textContent = "Loading websites...";
+
+    try {
+        const rows = await api("/websites");
+        container.replaceChildren();
+
+        if (!Array.isArray(rows) || rows.length === 0) {
+            container.textContent = "No monitored websites yet.";
+            return;
+        }
+
+        rows.forEach((row) => {
+            container.appendChild(
+                makeItem(
+                    row.url,
+                    "Added: " + safeText(row.added_at) +
+                    " | Last checked: " + safeText(row.last_checked)
+                )
+            );
+        });
+    } catch (error) {
+        container.textContent = "Could not load websites: " + error.message;
+    }
+}
+
+/* Load website change alerts */
+async function loadAlerts() {
+    const container = $("alertsList");
+    container.textContent = "Loading alerts...";
+
+    try {
+        const data = await api("/alerts");
+        const rows = Array.isArray(data)
+            ? data
+            : (data && Array.isArray(data.alerts) ? data.alerts : []);
+
+        container.replaceChildren();
+
+        if (rows.length === 0) {
+            container.textContent = "No change alerts yet.";
+            return;
+        }
+
+        rows.forEach((alert) => {
+            const item = document.createElement("div");
+            item.className = "item";
+
+            const heading = document.createElement("strong");
+            heading.textContent = safeText(alert.title);
+            item.appendChild(heading);
+
+            const url = document.createElement("p");
+            url.textContent = safeText(alert.url);
+            item.appendChild(url);
+
+            const message = document.createElement("p");
+            message.textContent = safeText(alert.message);
+            item.appendChild(message);
+
+            const date = document.createElement("p");
+            date.className = "muted";
+            date.textContent = "Created: " + safeText(alert.created_at);
+            item.appendChild(date);
+
+            if (!alert.is_read) {
+                const readButton = document.createElement("button");
+                readButton.textContent = "Mark as Read";
+
+                readButton.addEventListener("click", async () => {
+                    try {
+                        await jsonPost(
+                            "/alerts/" + encodeURIComponent(alert.id) + "/read"
+                        );
+                        await loadAlerts();
+                    } catch (error) {
+                        alert("Could not mark alert as read: " + error.message);
+                    }
+                });
+
+                item.appendChild(readButton);
+            }
+
+            container.appendChild(item);
+        });
+    } catch (error) {
+        container.textContent = "Could not load alerts: " + error.message;
+    }
+}
+
+/* Create a test alert */
+$("testChangeButton").addEventListener("click", async () => {
+    try {
+        await jsonPost("/test-change");
+        await loadAlerts();
+        showMessage("checkMessage", "Test alert created.");
+    } catch (error) {
+        showMessage("checkMessage", error.message, true);
+    }
+});
+
+/* Load content change history */
+$("changeHistoryButton").addEventListener("click", async () => {
+    const url = $("historyUrl").value.trim();
+
+    if (!url) {
+        $("changeHistory").textContent =
+            "Please enter the website URL first.";
+        return;
+    }
+
+    await loadChangeHistory(url);
+});
+
+async function loadChangeHistory(url) {
+    const container = $("changeHistory");
+    container.textContent = "Loading change history...";
+
+    try {
+        const rows = await api(
+            "/history?url=" + encodeURIComponent(url)
+        );
+
+        container.replaceChildren();
+
+        if (!Array.isArray(rows) || rows.length === 0) {
+            container.textContent = "No change history found.";
+            return;
+        }
+
+        rows.forEach((row) => {
+            container.appendChild(
+                makeItem(
+                    safeText(row.title),
+                    "URL: " + safeText(row.url) +
+                    "\nChecked: " + safeText(row.checked_at) +
+                    "\nContent: " + safeText(row.content).slice(0, 500)
+                )
+            );
+        });
+    } catch (error) {
+        container.textContent =
+            "Could not load change history: " + error.message;
+    }
+}
+
+/* Refresh buttons */
+$("refreshWebsitesButton").addEventListener("click", loadWebsites);
+$("refreshAlertsButton").addEventListener("click", loadAlerts);
+
+/* Load dashboard data at startup */
+loadWebsites();
+loadAlerts();
+loadUptimeStatus();
+</script>
+</body>
+</html>
