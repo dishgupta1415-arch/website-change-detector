@@ -28,6 +28,38 @@ The project uses a FastAPI backend and a web-based dashboard to manage website m
 - **Browser Automation:** Playwright
 - **Task Scheduling:** APScheduler
 - **Notifications:** Email SMTP and Telegram Bot API
+  
+### 🔐 Environment Configuration
+
+This project uses environment variables to configure email and Telegram notifications securely.
+
+For security reasons, the `.env` file is not included in this repository because it may contain sensitive information, such as email credentials and Telegram bot tokens.
+
+#### Setup Instructions
+
+1. Clone or download this repository.
+2. Create a file named `.env` in the root directory of the project.
+3. Add the environment variables required by the application.
+4. Enter your own email credentials and Telegram bot details if you want to enable notifications.
+5. Install the project dependencies and start the FastAPI server.
+
+#### Example Configuration
+
+Create a `.env` file using the variable names expected by your application:
+
+```env
+EMAIL_ADDRESS=
+EMAIL_PASSWORD=
+TELEGRAM_BOT_TOKEN=
+TELEGRAM_CHAT_ID=
+```
+
+**Important Notes:**
+- Keep your `.env` file private and never commit it to GitHub.
+- Use your own credentials; do not use credentials shared by other users.
+- Core website monitoring may work without notification credentials, depending on the application configuration.
+- Email and Telegram notifications require valid credentials and proper configuration.
+- Add `.env` to `.gitignore` to help prevent accidental exposure of sensitive information.
 
 ## 📂 Project Structure
 
