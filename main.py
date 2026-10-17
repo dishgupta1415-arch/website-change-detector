@@ -7,7 +7,6 @@ from monitoring_extras import (
     get_ssl_history,
     run_ssl_checks,
 )
-
 import asyncio
 import ipaddress
 import os
