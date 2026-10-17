@@ -11,12 +11,11 @@ from monitoring_extras import (
 import asyncio
 import ipaddress
 import os
-import time
-import urllib.request
-import urllib.error
 import smtplib
 import socket
 import sqlite3
+import urllib.request
+import urllib.error
 from contextlib import asynccontextmanager
 from datetime import datetime, timezone
 from email.message import EmailMessage
@@ -29,14 +28,16 @@ from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import FileResponse, HTMLResponse
 from playwright.sync_api import sync_playwright
 
+try:
+    from monitoring_extras import init_extra_tables, get_alert_history, get_ssl_history, run_ssl_checks
+except ImportError:
+    init_extra_tables = get_alert_history = get_ssl_history = run_ssl_checks = None
+
 # Always load .env from the same folder as this file.
 BASE_DIR = FilePath(__file__).resolve().parent
 load_dotenv(BASE_DIR / ".env", override=True)
 
 DB_PATH = BASE_DIR / "websites.db"
-
-init_extra_tables(DB_PATH)
-
 HTML_PATH = BASE_DIR / "index.html"
 scheduler = AsyncIOScheduler()
 
@@ -64,19 +65,6 @@ def normalize_url(url: str) -> str:
 
 def init_db():
     with sqlite3.connect(DB_PATH) as conn:
-        
-        conn.execute("""
-            CREATE TABLE IF NOT EXISTS uptime_checks (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                url TEXT NOT NULL,
-                status TEXT NOT NULL,
-                http_status INTEGER,
-                response_time_ms REAL,
-                message TEXT,
-                checked_at TEXT NOT NULL
-            )
-        """)
-
         conn.execute("""
             CREATE TABLE IF NOT EXISTS snapshots (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -89,9 +77,25 @@ def init_db():
         conn.execute("""
             CREATE TABLE IF NOT EXISTS monitored_websites (
                 url TEXT PRIMARY KEY,
-                added_at TEXT NOT NULL
+                added_at TEXT NOT NULL,
+                name TEXT NOT NULL DEFAULT '',
+                interval_minutes INTEGER NOT NULL DEFAULT 60,
+                last_checked TEXT,
+                last_changed TEXT,
+                status TEXT NOT NULL DEFAULT 'UNKNOWN'
             )
         """)
+        # Safe migrations for databases created by older versions.
+        website_columns = {row[1] for row in conn.execute("PRAGMA table_info(monitored_websites)").fetchall()}
+        for column, definition in (
+            ('name', "TEXT NOT NULL DEFAULT ''"),
+            ('interval_minutes', 'INTEGER NOT NULL DEFAULT 60'),
+            ('last_checked', 'TEXT'),
+            ('last_changed', 'TEXT'),
+            ('status', "TEXT NOT NULL DEFAULT 'UNKNOWN'"),
+        ):
+            if column not in website_columns:
+                conn.execute(f"ALTER TABLE monitored_websites ADD COLUMN {column} {definition}")
         conn.execute("""
             CREATE TABLE IF NOT EXISTS alerts (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -102,6 +106,10 @@ def init_db():
                 is_read INTEGER NOT NULL DEFAULT 0
             )
         """)
+        conn.execute("""CREATE TABLE IF NOT EXISTS uptime_checks (
+            id INTEGER PRIMARY KEY AUTOINCREMENT, url TEXT NOT NULL, status TEXT NOT NULL,
+            http_status INTEGER, response_time_ms INTEGER, checked_at TEXT NOT NULL, error TEXT
+        )""")
         conn.commit()
 
         # Normalize existing records and merge duplicate monitored website rows.
@@ -176,6 +184,53 @@ def send_change_email(url: str, title: str, message: str) -> bool:
         return False
 
 
+# ---------------- Telegram ----------------
+def send_telegram_alert(message: str) -> bool:
+    """Send a message using the Telegram Bot API."""
+    import json
+
+    token = os.getenv("TELEGRAM_BOT_TOKEN", "").strip()
+    chat_id = os.getenv("TELEGRAM_CHAT_ID", "").strip()
+
+    if not token or not chat_id:
+        print("Telegram not sent: TELEGRAM_BOT_TOKEN or TELEGRAM_CHAT_ID is missing in .env")
+        return False
+
+    api_url = f"https://api.telegram.org/bot{token}/sendMessage"
+    payload = json.dumps({"chat_id": chat_id, "text": message[:4000]}).encode("utf-8")
+    request = urllib.request.Request(
+        api_url,
+        data=payload,
+        headers={"Content-Type": "application/json"},
+        method="POST",
+    )
+
+    try:
+        with urllib.request.urlopen(request, timeout=15) as response:
+            result = json.loads(response.read().decode("utf-8"))
+        if result.get("ok") is True:
+            print("Telegram notification sent successfully.")
+            return True
+        print("Telegram failed: Telegram API did not accept the message.")
+        return False
+    except Exception as exc:
+        # Do not print the bot token or other secrets.
+        print(f"Telegram notification failed: {type(exc).__name__}")
+        return False
+
+
+def send_all_notifications(url: str, title: str, message: str) -> dict:
+    """Attempt email and Telegram independently."""
+    email_sent = send_change_email(url, title, message)
+    telegram_text = (
+        f"{title or 'Website Alert'}\n\n{message}\n\n"
+        f"Website: {url}\nDetected at (UTC): {now_utc()}"
+    )
+    telegram_sent = send_telegram_alert(telegram_text)
+    print(f"Notification results: email={email_sent}, telegram={telegram_sent}")
+    return {"email_sent": email_sent, "telegram_sent": telegram_sent}
+
+
 # ---------------- URL validation ----------------
 
 def validate_public_url(url: str):
@@ -234,216 +289,109 @@ def fetch_website_sync(url: str):
             browser.close()
 
 
-async def perform_check(url: str):
+async def perform_check(url: str, name: str | None = None, interval_minutes: int | None = None):
     try:
         clean_url = normalize_url(url)
+        validate_public_url(clean_url)
         title, content = await asyncio.to_thread(fetch_website_sync, clean_url)
+        checked_at = now_utc()
 
         with sqlite3.connect(DB_PATH) as conn:
             previous = conn.execute(
-                """
-                SELECT title, content FROM snapshots
-                WHERE url = ? ORDER BY id DESC LIMIT 1
-                """,
+                "SELECT title, content FROM snapshots WHERE url = ? ORDER BY id DESC LIMIT 1",
                 (clean_url,),
             ).fetchone()
-
-            changed = False
-            if previous is not None:
-                old_title, old_content = previous
-                changed = old_title != title or old_content != content
+            changed = previous is not None and (previous[0] != title or previous[1] != content)
+            is_first_snapshot = previous is None
 
             conn.execute(
-                "INSERT OR IGNORE INTO monitored_websites (url, added_at) VALUES (?, ?)",
-                (clean_url, now_utc()),
+                """INSERT OR IGNORE INTO monitored_websites
+                   (url, added_at, name, interval_minutes, status)
+                   VALUES (?, ?, ?, ?, 'ONLINE')""",
+                (clean_url, checked_at, (name or title or clean_url)[:120],
+                 max(15, min(1440, int(interval_minutes or 60)))),
             )
-            conn.execute(
-                """
-                INSERT INTO snapshots (url, title, content, checked_at)
-                VALUES (?, ?, ?, ?)
-                """,
-                (clean_url, title, content, now_utc()),
-            )
+            if name:
+                conn.execute("UPDATE monitored_websites SET name = ? WHERE url = ?", (name[:120], clean_url))
+            if interval_minutes is not None:
+                conn.execute("UPDATE monitored_websites SET interval_minutes = ? WHERE url = ?",
+                              (max(15, min(1440, int(interval_minutes))), clean_url))
 
-            message = "Website content has changed since the previous check."
+            # Store only the first version or a genuine content change.
+            if is_first_snapshot or changed:
+                conn.execute(
+                    "INSERT INTO snapshots (url, title, content, checked_at) VALUES (?, ?, ?, ?)",
+                    (clean_url, title, content, checked_at),
+                )
+            message = "Website content has changed since the previous version."
             if changed:
                 conn.execute(
-                    """
-                    INSERT INTO alerts (url, title, message, created_at, is_read)
-                    VALUES (?, ?, ?, ?, 0)
-                    """,
-                    (clean_url, title, message, now_utc()),
+                    "INSERT INTO alerts (url, title, message, created_at, is_read) VALUES (?, ?, ?, ?, 0)",
+                    (clean_url, title, message, checked_at),
                 )
+            conn.execute(
+                "UPDATE monitored_websites SET last_checked = ?, status = 'ONLINE', "
+                "last_changed = CASE WHEN ? THEN ? ELSE last_changed END WHERE url = ?",
+                (checked_at, int(changed), checked_at, clean_url),
+            )
             conn.commit()
 
         if changed:
-            await asyncio.to_thread(send_change_email, clean_url, title, message)
-
-        return {
-            "success": True,
-            "url": clean_url,
-            "title": title,
-            "changed": changed,
-            "message": (
-                "Website change detected!"
-                if changed
-                else "Website checked successfully. No change detected."
-            ),
-        }
+            await asyncio.to_thread(send_all_notifications, clean_url,
+                                    title or "Website Change Detected", message)
+        return {"success": True, "url": clean_url, "title": title, "changed": changed,
+                "message": "Website change detected!" if changed else
+                ("First snapshot saved." if is_first_snapshot else "Checked successfully. No change detected.")}
     except Exception as exc:
-        return {
-            "success": False,
-            "url": url,
-            "changed": False,
-            "message": str(exc),
-        }
+        try:
+            with sqlite3.connect(DB_PATH) as conn:
+                conn.execute("UPDATE monitored_websites SET last_checked = ?, status = 'ERROR' WHERE url = ?",
+                             (now_utc(), normalize_url(url)))
+                conn.commit()
+        except Exception:
+            pass
+        return {"success": False, "url": url, "changed": False, "message": str(exc)}
 
 
 async def check_all_websites():
+    """Check only sites whose own interval has elapsed; scheduler wakes once per minute."""
     with sqlite3.connect(DB_PATH) as conn:
-        rows = conn.execute("SELECT url FROM monitored_websites").fetchall()
-    for (url,) in rows:
-        await perform_check(url)
+        rows = conn.execute("SELECT url, name, interval_minutes, last_checked FROM monitored_websites").fetchall()
+    now = datetime.now(timezone.utc)
+    for url, name, interval_minutes, last_checked in rows:
+        due = not last_checked
+        if last_checked:
+            try:
+                last = datetime.fromisoformat(last_checked.replace('Z', '+00:00'))
+                if last.tzinfo is None:
+                    last = last.replace(tzinfo=timezone.utc)
+                due = (now - last).total_seconds() >= int(interval_minutes or 60) * 60
+            except (ValueError, TypeError):
+                due = True
+        if due:
+            await perform_check(url, name=name, interval_minutes=interval_minutes)
 
 
 # ---------------- App startup/shutdown ----------------
 
-def check_all_websites_uptime():
-    with sqlite3.connect(DB_PATH) as conn:
-        websites = conn.execute(
-            "SELECT url FROM monitored_websites"
-        ).fetchall()
-
-    for (url,) in websites:
-        # Pichhla status check karo
-        with sqlite3.connect(DB_PATH) as conn:
-            previous = conn.execute(
-                """
-                SELECT status
-                FROM uptime_checks
-                WHERE url = ?
-                ORDER BY id DESC
-                LIMIT 1
-                """,
-                (url,),
-            ).fetchone()
-
-        previous_status = (
-            str(previous[0]).upper() if previous else None
-        )
-
-        # Purane status names ko bhi support karo
-        was_online = previous_status in ("ONLINE", "UP")
-        was_offline = previous_status in ("OFFLINE", "DOWN")
-
-        started = time.perf_counter()
-        http_status = None
-
-        try:
-            request = urllib.request.Request(
-                url,
-                headers={"User-Agent": "WebsiteChangeDetector/1.0"},
-            )
-
-            with urllib.request.urlopen(request, timeout=15) as response:
-                http_status = response.status
-
-            status = (
-                "ONLINE" if http_status < 400 else "OFFLINE"
-            )
-            message = "Website responded successfully."
-
-        except urllib.error.HTTPError as error:
-            http_status = error.code
-            status = (
-                "ONLINE" if error.code < 400 else "OFFLINE"
-            )
-            message = f"Website returned HTTP {error.code}."
-
-        except Exception as error:
-            status = "OFFLINE"
-            message = f"Website check failed: {error}"
-
-        response_time_ms = round(
-            (time.perf_counter() - started) * 1000, 2
-        )
-
-        checked_at = datetime.now().astimezone().isoformat()
-
-        # Har check ka result database mein save karo
-        with sqlite3.connect(DB_PATH) as conn:
-            conn.execute(
-                """
-                INSERT INTO uptime_checks
-                (url, status, http_status, response_time_ms,
-                 message, checked_at)
-                VALUES (?, ?, ?, ?, ?, ?)
-                """,
-                (
-                    url,
-                    status,
-                    http_status,
-                    response_time_ms,
-                    message,
-                    checked_at,
-                ),
-            )
-
-        # OFFLINE hone par ek alert; lagatar OFFLINE par repeat nahi
-        if status == "OFFLINE" and not was_offline:
-            send_change_email(
-                url,
-                f"Website DOWN: {url}",
-                (
-                    "Your monitored website is OFFLINE.\n\n"
-                    f"Website: {url}\n"
-                    f"HTTP status: {http_status}\n"
-                    f"Message: {message}\n"
-                    f"Checked at: {checked_at}"
-                ),
-            )
-
-        # Website wapas ONLINE aaye to recovery email
-        elif status == "ONLINE" and was_offline:
-            send_change_email(
-                url,
-                f"Website RECOVERED: {url}",
-                (
-                    "Your monitored website is ONLINE again.\n\n"
-                    f"Website: {url}\n"
-                    f"HTTP status: {http_status}\n"
-                    f"Response time: {response_time_ms} ms\n"
-                    f"Checked at: {checked_at}"
-                ),
-            )
-
-
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     init_db()
-
+    if init_extra_tables:
+        try:
+            init_extra_tables(DB_PATH)
+        except Exception as exc:
+            print(f"Extra table initialization skipped: {type(exc).__name__}")
     if not scheduler.running:
         scheduler.add_job(
             check_all_websites,
             "interval",
-            minutes=5,
+            minutes=1,
             id="website_check_job",
             replace_existing=True,
             max_instances=1,
         )
-
-        scheduler.add_job(
-            check_all_websites_uptime,
-            "interval",
-            minutes=5,
-            id="automatic_uptime_check",
-            replace_existing=True,
-            next_run_time=datetime.now().astimezone(),
-            max_instances=1,
-        )
-
         scheduler.start()
-
     try:
         yield
     finally:
@@ -457,16 +405,6 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
-@app.get("/api/alert-history")
-def alert_history(limit: int = 100):
-    return {"items": get_alert_history(DB_PATH, limit)}
-
-
-@app.get("/api/ssl-history")
-def ssl_history(limit: int = 100):
-    return {"items": get_ssl_history(DB_PATH, limit)}
-
-
 
 @app.get("/", response_class=HTMLResponse)
 async def dashboard():
@@ -479,6 +417,39 @@ async def dashboard():
 
 
 # Accept common field names so different dashboard versions work.
+@app.post("/websites")
+async def add_website(request: Request):
+    try:
+        data = await request.json()
+    except Exception:
+        data = {}
+    url = str(data.get("url", "")).strip()
+    name = str(data.get("name", "")).strip()
+    try:
+        interval = int(data.get("interval_minutes", 60))
+    except (TypeError, ValueError):
+        raise HTTPException(status_code=400, detail="Interval must be a number of minutes.")
+    if not url:
+        raise HTTPException(status_code=400, detail="URL is required.")
+    if interval < 15 or interval > 1440:
+        raise HTTPException(status_code=400, detail="Interval must be between 15 and 1440 minutes.")
+    try:
+        validate_public_url(url)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+    clean_url = normalize_url(url)
+    with sqlite3.connect(DB_PATH) as conn:
+        conn.execute("""INSERT INTO monitored_websites (url, added_at, name, interval_minutes, status)
+                      VALUES (?, ?, ?, ?, 'UNKNOWN')
+                      ON CONFLICT(url) DO UPDATE SET name=excluded.name, interval_minutes=excluded.interval_minutes""",
+                     (clean_url, now_utc(), name or clean_url, interval))
+        conn.commit()
+    result = await perform_check(clean_url, name=name or clean_url, interval_minutes=interval)
+    if not result["success"]:
+        raise HTTPException(status_code=400, detail=result["message"])
+    return {**result, "name": name or result.get("title") or clean_url, "interval_minutes": interval}
+
+
 @app.post("/check")
 async def check_website(request: Request):
     data = {}
@@ -519,7 +490,9 @@ async def check_website(request: Request):
             detail="Please provide a website URL in the 'url' field, for example: https://example.com/",
         )
 
-    result = await perform_check(url)
+    name = data.get("name") if isinstance(data.get("name"), str) else None
+    interval = data.get("interval_minutes")
+    result = await perform_check(url, name=name, interval_minutes=interval)
     if not result["success"]:
         raise HTTPException(status_code=400, detail=result["message"])
     return result
@@ -530,9 +503,10 @@ async def get_websites():
     with sqlite3.connect(DB_PATH) as conn:
         conn.row_factory = sqlite3.Row
         rows = conn.execute("""
-            SELECT w.url, w.added_at,
+            SELECT w.url, w.added_at, w.name, w.interval_minutes, w.last_checked,
+                   w.last_changed, w.status,
                 (SELECT s.checked_at FROM snapshots s
-                 WHERE s.url = w.url ORDER BY s.id DESC LIMIT 1) AS last_checked
+                 WHERE s.url = w.url ORDER BY s.id DESC LIMIT 1) AS last_version_at
             FROM monitored_websites w
             ORDER BY w.added_at DESC
         """).fetchall()
@@ -621,192 +595,117 @@ async def test_email():
     return {"success": True, "message": "Test email sent successfully."}
 
 
-@app.get("/health")
-async def health():
-    return {"status": "ok"}
+@app.post("/test-telegram")
+async def test_telegram():
+    sent = await asyncio.to_thread(
+        send_telegram_alert,
+        "Website Change Detector\n\nTEST ALERT: Telegram notifications are working.",
+    )
+    if not sent:
+        raise HTTPException(
+            status_code=500,
+            detail="Telegram failed. Check TELEGRAM_BOT_TOKEN and TELEGRAM_CHAT_ID in .env and the server terminal.",
+        )
+    return {"success": True, "telegram_sent": True, "message": "Telegram test message sent successfully."}
+
+
+@app.post("/test-notifications")
+async def test_notifications():
+    results = await asyncio.to_thread(
+        send_all_notifications,
+        "https://example.com/",
+        "Website Change Detector - Test",
+        "This is a test notification. No actual website change occurred.",
+    )
+    if not all(results.values()):
+        raise HTTPException(status_code=500, detail={"success": False, **results})
+    return {"success": True, **results, "message": "Email and Telegram tests passed."}
+
 
 @app.post("/uptime/check")
 async def uptime_check(request: Request):
-    import time
-    import urllib.request
-    import urllib.error
-
     try:
         data = await request.json()
     except Exception:
-        raise HTTPException(
-        status_code=400,
-        detail="Invalid JSON. Please send a website URL."
-    )
-    url = data.get("url", "").strip()
-
+        data = {}
+    url = normalize_url(str(data.get("url", "")).strip())
     if not url:
-        raise HTTPException(status_code=400, detail="Website URL is required.")
-
+        raise HTTPException(status_code=400, detail="URL is required.")
     try:
         validate_public_url(url)
-    except ValueError as exc:
-        raise HTTPException(status_code=400, detail=str(exc))
-
-    url = normalize_url(url)
-    started = time.perf_counter()
-    status = "ONLINE"
-    http_status = None
-    message = "Website responded successfully."
-
-    try:
-        req = urllib.request.Request(
-            url,
-            headers={"User-Agent": "WebsiteUptimeMonitor/1.0"}
-        )
-        with urllib.request.urlopen(req, timeout=15) as response:
-            http_status = response.status
-            if http_status >= 500:
-                status = "OFFLINE"
-                message = f"Server error: HTTP {http_status}"
-    except urllib.error.HTTPError as exc:
-        http_status = exc.code
-        status = "OFFLINE" if exc.code >= 500 else "ONLINE"
-        message = f"HTTP status: {exc.code}"
+        started = __import__("time").monotonic()
+        req = urllib.request.Request(url, headers={"User-Agent": "WebsiteChangeDetector/1.0"})
+        try:
+            with urllib.request.urlopen(req, timeout=15) as response:
+                code = response.getcode()
+        except urllib.error.HTTPError as exc:
+            code = exc.code
+        elapsed = int((__import__("time").monotonic() - started) * 1000)
+        status = "ONLINE" if code < 500 else "OFFLINE"
+        err = None
     except Exception as exc:
-        status = "OFFLINE"
-        message = f"Website unreachable: {exc}"
-
-    response_time = round((time.perf_counter() - started) * 1000, 2)
-    checked_at = now_utc()
-
+        code, elapsed, status, err = None, None, "UNKNOWN", str(exc)
+    checked = now_utc()
     with sqlite3.connect(DB_PATH) as conn:
-        conn.execute("""
-            CREATE TABLE IF NOT EXISTS uptime_checks (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                url TEXT NOT NULL,
-                status TEXT NOT NULL,
-                http_status INTEGER,
-                response_time_ms REAL,
-                message TEXT,
-                checked_at TEXT NOT NULL
-            )
-        """)
-        conn.execute("""
-            INSERT INTO uptime_checks
-            (url, status, http_status, response_time_ms, message, checked_at)
-            VALUES (?, ?, ?, ?, ?, ?)
-        """, (url, status, http_status, response_time, message, checked_at))
-        conn.execute(
-            "INSERT OR IGNORE INTO monitored_websites (url, added_at) VALUES (?, ?)",
-            (url, checked_at)
-        )
+        conn.execute("INSERT INTO uptime_checks (url,status,http_status,response_time_ms,checked_at,error) VALUES (?,?,?,?,?,?)",
+                     (url, status, code, elapsed, checked, err))
+        conn.execute("INSERT OR IGNORE INTO monitored_websites (url,added_at,name,interval_minutes,status) VALUES (?,?,?,60,?)",
+                     (url, checked, url, status))
+        if status in ("ONLINE", "OFFLINE"):
+            conn.execute("UPDATE monitored_websites SET status=? WHERE url=?", (status, url))
         conn.commit()
-
-    return {
-        "url": url,
-        "status": status,
-        "http_status": http_status,
-        "response_time_ms": response_time,
-        "message": message,
-        "checked_at": checked_at
-    }
+    return {"success": status != "UNKNOWN", "url": url, "status": status,
+            "http_status": code, "response_time_ms": elapsed, "checked_at": checked, "error": err}
 
 
 @app.get("/uptime/status")
 async def uptime_status():
     with sqlite3.connect(DB_PATH) as conn:
         conn.row_factory = sqlite3.Row
-        rows = conn.execute("""
-            SELECT u.url, u.status, u.http_status,
-                   u.response_time_ms, u.message, u.checked_at
-            FROM uptime_checks u
-            INNER JOIN (
-                SELECT url, MAX(id) AS latest_id
-                FROM uptime_checks GROUP BY url
-            ) latest ON u.id = latest.latest_id
-            ORDER BY u.checked_at DESC
-        """).fetchall()
-
-    return {"websites": [dict(row) for row in rows]}
+        rows = conn.execute("""SELECT w.url, w.name, COALESCE((SELECT u.status FROM uptime_checks u
+            WHERE u.url=w.url ORDER BY u.id DESC LIMIT 1), w.status, 'UNKNOWN') AS status,
+            (SELECT u.http_status FROM uptime_checks u WHERE u.url=w.url ORDER BY u.id DESC LIMIT 1) AS http_status,
+            (SELECT u.response_time_ms FROM uptime_checks u WHERE u.url=w.url ORDER BY u.id DESC LIMIT 1) AS response_time_ms,
+            (SELECT u.checked_at FROM uptime_checks u WHERE u.url=w.url ORDER BY u.id DESC LIMIT 1) AS checked_at
+            FROM monitored_websites w ORDER BY w.added_at DESC""").fetchall()
+    return [dict(row) for row in rows]
 
 
 @app.get("/uptime/history")
 async def uptime_history(url: str):
-    url = normalize_url(url.strip())
+    url = normalize_url(url)
     with sqlite3.connect(DB_PATH) as conn:
         conn.row_factory = sqlite3.Row
-        rows = conn.execute("""
-            SELECT url, status, http_status, response_time_ms,
-                   message, checked_at
-            FROM uptime_checks
-            WHERE url = ?
-            ORDER BY id DESC LIMIT 50
-        """, (url,)).fetchall()
-
-    return {"history": [dict(row) for row in rows]}
-
-@app.post("/test-uptime-alerts")
-async def test_uptime_alerts():
-    down_sent = await asyncio.to_thread(
-        send_change_email,
-        "https://example.com/",
-        "Website DOWN: TEST",
-        (
-            "This is a TEST alert only.\n\n"
-            "Simulated status: OFFLINE\n"
-            "No real website status was changed."
-        ),
-    )
-
-    recovered_sent = await asyncio.to_thread(
-        send_change_email,
-        "https://example.com/",
-        "Website RECOVERED: TEST",
-        (
-            "This is a TEST alert only.\n\n"
-            "Simulated status: ONLINE\n"
-            "No real website status was changed."
-        ),
-    )
-
-    if not down_sent or not recovered_sent:
-        raise HTTPException(
-            status_code=500,
-            detail="One or both test emails failed. Check the VS Code terminal.",
-        )
-
-    return {
-        "success": True,
-        "message": "Both test emails were sent successfully.",
-    }
+        rows = conn.execute("SELECT id,url,status,http_status,response_time_ms,checked_at,error FROM uptime_checks WHERE url=? ORDER BY id DESC LIMIT 100", (url,)).fetchall()
+    return [dict(row) for row in rows]
 
 
+@app.get("/api/alert-history")
+async def api_alert_history(limit: int = 100):
+    if get_alert_history:
+        return get_alert_history(DB_PATH, max(1, min(limit, 500)))
+    with sqlite3.connect(DB_PATH) as conn:
+        conn.row_factory = sqlite3.Row
+        rows = conn.execute("SELECT id,url,title,message,created_at,is_read FROM alerts ORDER BY id DESC LIMIT ?",
+                            (max(1, min(limit, 500)),)).fetchall()
+    return [dict(row) for row in rows]
 
-@app.post("/test-automatic-alert-logic")
-async def test_automatic_alert_logic():
-    test_url = "https://example.com/"
 
-    down_sent = await asyncio.to_thread(
-        send_change_email,
-        test_url,
-        "TEST - Website DOWN",
-        "TEST ONLY: Simulated website OFFLINE alert. "
-        "No actual website status was changed.",
-    )
+@app.get("/api/ssl-history")
+async def api_ssl_history(limit: int = 100):
+    if get_ssl_history:
+        return get_ssl_history(DB_PATH, max(1, min(limit, 500)))
+    return {"available": False, "message": "SSL history helper is not configured."}
 
-    recovered_sent = await asyncio.to_thread(
-        send_change_email,
-        test_url,
-        "TEST - Website RECOVERED",
-        "TEST ONLY: Simulated website RECOVERED alert. "
-        "No actual website status was changed.",
-    )
 
-    if not down_sent or not recovered_sent:
-        raise HTTPException(
-            status_code=500,
-            detail="Test failed. Check the VS Code terminal and .env.",
-        )
+@app.post("/api/ssl-check")
+async def api_ssl_check():
+    if not run_ssl_checks:
+        raise HTTPException(status_code=501, detail="SSL check helper is not configured.")
+    result = await asyncio.to_thread(run_ssl_checks, DB_PATH)
+    return {"success": True, "result": result}
 
-    return {
-        "success": True,
-        "down_email_sent": down_sent,
-        "recovered_email_sent": recovered_sent,
-        "note": "Email delivery tested; scheduler transition logic not yet tested.",
-    }
+
+@app.get("/health")
+async def health():
+    return {"status": "ok"}
