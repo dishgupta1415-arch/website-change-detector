@@ -1,72 +1,142 @@
-# Website Change Detector
+# 🌐 Website Change Detector
 
-A web-based monitoring application built with **Python, FastAPI, and SQLite** to monitor websites, detect content changes, and track website uptime.
+A web-based application that monitors websites for content changes, tracks website availability, and sends notifications when changes are detected.
 
-## Features
+## 📌 About the Project
 
-- **Website Monitoring:** Monitor websites for content changes.
-- **Change Detection:** Detect when website content changes.
-- **Uptime Monitoring:** Check whether websites are UP or DOWN.
-- **Email Notifications:** Receive email alerts for detected changes, downtime, and recovery.
-- **Dashboard:** Manage and monitor websites through a web interface.
-- **SQLite Database:** Store website monitoring data locally.
+The **Website Change Detector** is designed to help users automatically monitor websites without manually checking them again and again. Users can add website URLs, check their availability, view change history, and receive notifications when website content changes.
 
-## Tech Stack
+The project uses a FastAPI backend and a web-based dashboard to manage website monitoring.
 
-- Python
-- FastAPI
-- SQLite
-- HTML, CSS, JavaScript
-- Uvicorn
+## ✨ Features
 
-## Installation
+- **Website Monitoring:** Add and monitor website URLs.
+- **Content Change Detection:** Detect changes in webpage titles and text content.
+- **Scheduled Checks:** Configure monitoring intervals.
+- **Uptime Monitoring:** Track whether a website is available or unavailable.
+- **Change History:** View previously detected website changes.
+- **Email Notifications:** Receive alerts about detected changes.
+- **Telegram Notifications:** Get monitoring alerts through Telegram.
+- **Dashboard:** Manage monitored websites and view alerts.
+- **REST API:** Access monitoring functionality through FastAPI endpoints.
 
-1. Clone the repository:
+## 🛠️ Technologies Used
 
-   ```bash
-   git clone https://github.com/dishgupta1415-arch/website-change-detector.git
-   ```
+- **Backend:** Python, FastAPI
+- **Frontend:** HTML, CSS, JavaScript
+- **Database:** SQLite
+- **Browser Automation:** Playwright
+- **Task Scheduling:** APScheduler
+- **Notifications:** Email SMTP and Telegram Bot API
 
-2. Open the project folder:
+## 📂 Project Structure
 
-   ```bash
-   cd website-change-detector
-   ```
+```text
+Website-Change-Detector/
+├── main.py
+├── index.html
+├── monitoring_extras.py
+├── websites.db
+├── .env
+├── requirements.txt
+└── README.md
+```
 
-3. Create and activate a virtual environment:
+*Note: Update this structure to match the files in your actual project. Do not upload your private `.env` file or database if it contains sensitive information.*
 
-   ```bash
-   python -m venv .venv
-   ```
+## ⚙️ Installation and Setup
 
-   Windows PowerShell:
+### 1. Clone the Repository
 
-   ```powershell
-   .venv\Scripts\Activate.ps1
-   ```
+```bash
+git clone YOUR_GITHUB_REPOSITORY_URL
+cd Website-Change-Detector
+```
 
-4. Install the required dependencies:
+Replace `YOUR_GITHUB_REPOSITORY_URL` with your repository's actual URL.
 
-   ```bash
-   pip install -r requirements.txt
-   ```
+### 2. Create a Virtual Environment
 
-5. Configure your environment variables in a local `.env` file. Never upload passwords or email credentials to GitHub.
+```bash
+python -m venv venv
+```
 
-6. Start the application:
+Activate it on Windows:
 
-   ```bash
-   uvicorn main:app --reload
-   ```
+```bash
+venv\Scripts\activate
+```
 
-7. Open your browser at:
+### 3. Install Dependencies
 
-   `http://127.0.0.1:8000`
+```bash
+pip install -r requirements.txt
+```
 
-## Security
+Install the Playwright browser if required:
 
-Keep `.env`, `.venv`, database files, and credentials out of the public repository.
+```bash
+playwright install chromium
+```
 
-## Author
+### 4. Configure Environment Variables
 
-**GitHub:** [dishgupta1415-arch](https://github.com/dishgupta1415-arch)
+Create a local `.env` file and configure the email and Telegram credentials required by your application.
+
+**Important:** Never commit API tokens, email passwords, or other secrets to GitHub.
+
+### 5. Run the Application
+
+```bash
+uvicorn main:app --reload
+```
+
+Open the dashboard at:
+
+http://127.0.0.1:8000
+
+Open the interactive API documentation at:
+
+http://127.0.0.1:8000/docs
+
+## 🚀 How to Use
+
+1. Start the FastAPI server.
+2. Open the dashboard in your browser.
+3. Add the website URL you want to monitor.
+4. Configure the monitoring interval if supported.
+5. Check website availability and content changes.
+6. View alerts and change history in the dashboard.
+
+## 🔔 Notifications
+
+The application can send email and Telegram notifications when configured. Notification delivery depends on valid credentials and the corresponding services being available.
+
+## 🔒 Security
+
+- Keep credentials and API tokens in environment variables.
+- Validate URLs before accessing external websites.
+- Block localhost, private IP addresses, and unsafe redirects.
+- Monitor only websites you are authorized to access.
+
+## 🔮 Future Enhancements
+
+- Visual webpage comparison using screenshots
+- AI-generated summaries of website changes
+- Interactive uptime analytics and graphs
+- SSL certificate expiry notifications
+- PDF and CSV report export
+- Custom CSS selector-based monitoring
+- User authentication and personalized dashboards
+
+*These are planned enhancements and should not be presented as completed features until implemented.*
+
+## 👨‍💻 Author
+
+**Dish Gupta**
+
+Information Technology Student | VIT Vellore
+
+## 📄 License
+
+This project is available for educational and learning purposes. Add a license file if you intend to specify permissions for reuse and distribution.
