@@ -2,747 +2,1530 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Website Change Detector</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Website Change Detector</title>
 
-    <style>
-        * {
-            box-sizing: border-box;
-        }
+<style>
+:root {
+  --primary: #4f46e5;
+  --primary-dark: #3730a3;
+  --bg: #f5f7fb;
+  --card: #ffffff;
+  --text: #172033;
+  --muted: #64748b;
+  --border: #e2e8f0;
+  --green: #15803d;
+  --red: #b91c1c;
+}
 
-        body {
-            margin: 0;
-            padding: 24px;
-            font-family: Arial, sans-serif;
-            background: #f3f6fb;
-            color: #1f2937;
-        }
+* {
+  box-sizing: border-box;
+}
 
-        .container {
-            max-width: 1050px;
-            margin: auto;
-        }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: Arial, Helvetica, sans-serif;
+}
 
-        header {
-            background: #1d4ed8;
-            color: white;
-            padding: 25px;
-            border-radius: 14px;
-            margin-bottom: 22px;
-        }
+header {
+  background: linear-gradient(120deg, #172554, #4338ca);
+  color: white;
+  padding: 25px 5%;
+}
 
-        header h1 {
-            margin: 0 0 8px;
-        }
+header h1 {
+  margin: 0 0 8px;
+  font-size: 27px;
+}
 
-        .card {
-            background: white;
-            padding: 22px;
-            border-radius: 12px;
-            margin-bottom: 20px;
-            box-shadow: 0 3px 12px #0000000b;
-        }
+header p {
+  margin: 0;
+  color: #dbeafe;
+}
 
-        h2 {
-            margin-top: 0;
-            font-size: 21px;
-        }
+.container {
+  max-width: 1250px;
+  margin: 25px auto;
+  padding: 0 18px;
+}
 
-        input {
-            width: 100%;
-            padding: 12px;
-            margin: 7px 0 12px;
-            border: 1px solid #cbd5e1;
-            border-radius: 7px;
-            font-size: 15px;
-        }
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 18px;
+}
 
-        button {
-            background: #2563eb;
-            color: white;
-            padding: 11px 16px;
-            border: 0;
-            border-radius: 7px;
-            cursor: pointer;
-            margin: 4px 4px 4px 0;
-            font-size: 14px;
-        }
+.card {
+  background: var(--card);
+  padding: 22px;
+  margin-bottom: 20px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  box-shadow: 0 4px 15px rgba(15, 23, 42, 0.04);
+  min-width: 0;
+}
 
-        button:hover {
-            background: #1d4ed8;
-        }
+.card h2 {
+  font-size: 19px;
+  margin: 0 0 17px;
+}
 
-        button.secondary {
-            background: #475569;
-        }
+label {
+  display: block;
+  font-size: 13px;
+  font-weight: bold;
+  margin: 12px 0 6px;
+}
 
-        button:disabled {
-            opacity: 0.6;
-            cursor: wait;
-        }
+input, select {
+  width: 100%;
+  padding: 12px;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  background: white;
+  font-size: 14px;
+}
 
-        .message {
-            margin-top: 12px;
-            overflow-wrap: anywhere;
-        }
+input:focus, select:focus {
+  outline: 2px solid #c7d2fe;
+  border-color: var(--primary);
+}
 
-        .success {
-            color: #15803d;
-        }
+button {
+  border: 0;
+  border-radius: 8px;
+  padding: 11px 15px;
+  margin-top: 10px;
+  background: var(--primary);
+  color: white;
+  font-weight: bold;
+  cursor: pointer;
+  font-size: 13px;
+}
 
-        .error {
-            color: #b91c1c;
-        }
+button:hover {
+  background: var(--primary-dark);
+}
 
-        .muted {
-            color: #64748b;
-            font-size: 14px;
-        }
+button.secondary {
+  background: #475569;
+}
 
-        .item {
-            border: 1px solid #e2e8f0;
-            border-radius: 8px;
-            padding: 14px;
-            margin: 10px 0;
-            overflow-wrap: anywhere;
-        }
+button.secondary:hover {
+  background: #334155;
+}
 
-        .online {
-            color: #15803d;
-            font-weight: bold;
-        }
+button:disabled {
+  opacity: 0.6;
+  cursor: wait;
+}
 
-        .offline {
-            color: #b91c1c;
-            font-weight: bold;
-        }
+.full-button {
+  width: 100%;
+}
 
-        .table-wrap {
-            overflow-x: auto;
-        }
+.section-heading {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 12px;
+}
 
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            font-size: 14px;
-        }
+.section-heading h2 {
+  margin: 0;
+}
 
-        th, td {
-            padding: 10px;
-            text-align: left;
-            border-bottom: 1px solid #e2e8f0;
-            overflow-wrap: anywhere;
-        }
+.section-heading button {
+  margin: 0;
+}
 
-        th {
-            background: #f8fafc;
-        }
+.result {
+  display: none;
+  padding: 12px;
+  margin-top: 12px;
+  border-radius: 8px;
+  background: #eef2ff;
+  color: #312e81;
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+  font-size: 13px;
+}
 
-        footer {
-            text-align: center;
-            color: #64748b;
-            padding: 20px;
-        }
+.result.error {
+  display: block;
+  background: #fef2f2;
+  color: var(--red);
+}
 
-        @media (max-width: 600px) {
-            body {
-                padding: 12px;
-            }
+.result.success {
+  display: block;
+  background: #f0fdf4;
+  color: var(--green);
+}
 
-            .card {
-                padding: 15px;
-            }
-        }
-    </style>
+.list-item {
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 15px;
+  margin-top: 12px;
+  overflow-wrap: anywhere;
+}
+
+.list-item h3 {
+  font-size: 15px;
+  margin: 0 0 8px;
+}
+
+.muted {
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--muted);
+}
+
+.badge {
+  display: inline-block;
+  font-size: 11px;
+  border-radius: 20px;
+  padding: 5px 9px;
+  background: #e0e7ff;
+  color: #3730a3;
+  margin: 3px 4px 3px 0;
+}
+
+.badge.green {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.badge.red {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+.snapshot {
+  display: block;
+  width: 100%;
+  max-height: 500px;
+  object-fit: contain;
+  object-position: top;
+  background: #f8fafc;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  margin-top: 12px;
+}
+
+a {
+  color: var(--primary);
+  overflow-wrap: anywhere;
+}
+
+.text-diff-summary {
+    margin-top: 12px;
+    padding: 12px;
+    border-radius: 8px;
+    background: #f4f4f4;
+    overflow-wrap: anywhere;
+}
+
+.text-diff {
+    white-space: pre-wrap;
+    overflow-x: auto;
+    max-height: 300px;
+    overflow-y: auto;
+    padding: 10px;
+    border-radius: 6px;
+    background: #ffffff;
+    font-size: 12px;
+}
+
+
+.empty {
+  color: var(--muted);
+  padding: 14px 0;
+  font-size: 13px;
+}
+
+pre {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  font-size: 12px;
+}
+.item {
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 15px;
+    margin-top: 12px;
+    overflow-wrap: anywhere;
+    background: white;
+}
+
+.message {
+    padding: 12px;
+    margin-top: 12px;
+    border-radius: 8px;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+    background: #eef2ff;
+    color: #312e81;
+}
+
+.message.error {
+    background: #fef2f2;
+    color: var(--red);
+}
+
+footer {
+  text-align: center;
+  padding: 25px;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+
+
+
+.comparison-panel h3 {
+  font-size: 15px;
+}
+
+.comparison-panel img {
+  width: 100%;
+  max-height: 500px;
+  object-fit: contain;
+  object-position: top;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+
+@media (max-width: 600px) {
+  .comparison-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 600px) {
+  header h1 {
+    font-size: 22px;
+  }
+
+  .container {
+    padding: 0 12px;
+  }
+
+  .card {
+    padding: 16px;
+  }
+}
+/* History cards */
+#historyList .item {
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 16px;
+    margin-top: 12px;
+    background: white;
+    overflow-wrap: anywhere;
+}
+
+#historyList .item img {
+    display: block;
+    width: 100%;
+    max-height: 500px;
+    object-fit: contain;
+    object-position: top;
+    margin-top: 12px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+}
+
+/* Before and after comparison */
+.comparison-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 16px;
+    margin-top: 16px;
+}
+
+.comparison-panel {
+    min-width: 0;
+    padding: 14px;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    background: white;
+    overflow-wrap: anywhere;
+}
+
+.comparison-panel img {
+    display: block;
+    width: 100%;
+    max-height: 500px;
+    object-fit: contain;
+    object-position: top;
+    margin-top: 12px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+}
+
+.history-message {
+    padding: 12px;
+    margin-top: 12px;
+    border-radius: 8px;
+    background: #eef2ff;
+    color: #312e81;
+    overflow-wrap: anywhere;
+}
+
+.history-message.error {
+    background: #fef2f2;
+    color: #b91c1c;
+}
+
+@media (max-width: 600px) {
+    .comparison-grid {
+        grid-template-columns: 1fr;
+    }
+}
+</style>
 </head>
 
 <body>
-<div class="container">
 
-    <header>
-        <h1>Website Change Detector</h1>
-        <p>Check website content, monitor changes, and check uptime.</p>
-    </header>
+<header>
+  <h1>Website Change Detector</h1>
+  <p>Monitor public websites, track changes, view snapshots and check uptime.</p>
+</header>
 
-    <!-- Check website changes -->
+<main class="container">
+
+  <!-- ADD WEBSITE -->
+  <div class="grid">
+
     <section class="card">
-        <h2>Check a Website</h2>
-        <form id="checkForm">
-            <label for="websiteUrl">Website URL</label>
-            <input
-                id="websiteUrl"
-                type="url"
-                placeholder="https://example.com"
-                required
-            >
-            <button id="checkButton" type="submit">Check Website</button>
-        </form>
-        <div id="checkMessage" class="message" aria-live="polite"></div>
-    </section>
+      <h2>Add Website to Monitor</h2>
 
-    <!-- Uptime monitor -->
-    <section class="card">
-        <h2>Website Uptime Monitor</h2>
-        <p class="muted">
-            Check whether a public website is online and view its response time.
-        </p>
-
-        <form id="uptimeForm">
-            <label for="uptimeUrl">Website URL</label>
-            <input
-                id="uptimeUrl"
-                type="url"
-                placeholder="https://example.com"
-                required
-            >
-            <button id="uptimeButton" type="submit">Check Uptime</button>
-            <button id="refreshUptimeButton" class="secondary" type="button">
-                Refresh Status
-            </button>
-        </form>
-
-        <div id="uptimeMessage" class="message" aria-live="polite"></div>
-
-        <h3>Uptime Status</h3>
-
-<div style="display: flex; gap: 12px; flex-wrap: wrap; margin: 15px 0;">
-    <div class="item" style="flex: 1; min-width: 120px;">
-        <p class="muted">Total Websites</p>
-        <h2 id="totalCount">0</h2>
-    </div>
-
-    <div class="item" style="flex: 1; min-width: 120px;">
-        <p class="muted">Online</p>
-        <h2 id="onlineCount" class="online">0</h2>
-    </div>
-
-    <div class="item" style="flex: 1; min-width: 120px;">
-        <p class="muted">Offline</p>
-        <h2 id="offlineCount" class="offline">0</h2>
-    </div>
-</div>
-
-<div id="uptimeStatus">
-    <p class="muted">Loading uptime status...</p>
-</div>
-        <div id="uptimeStatus">
-            <p class="muted">Loading uptime status...</p>
-        </div>
-
-        <h3>Uptime History</h3>
-        <button id="historyButton" class="secondary" type="button">
-            Load History for Entered URL
-        </button>
-        <div id="uptimeHistory"></div>
-    </section>
-
-    <!-- Monitored websites -->
-    <section class="card">
-        <h2>Monitored Websites</h2>
-        <button id="refreshWebsitesButton" class="secondary" type="button">
-            Refresh Websites
-        </button>
-        <div id="websitesList">Loading websites...</div>
-    </section>
-
-    <!-- Alerts -->
-    <section class="card">
-        <h2>Website Change Alerts</h2>
-        <button id="refreshAlertsButton" class="secondary" type="button">
-            Refresh Alerts
-        </button>
-        <button id="testChangeButton" type="button">
-            Create Test Alert
-        </button>
-        <div id="alertsList">Loading alerts...</div>
-    </section>
-
-    <!-- Change history -->
-    <section class="card">
-        <h2>Website Change History</h2>
-        <label for="historyUrl">Website URL for change history</label>
+      <form id="addForm">
+        <label for="websiteUrl">Website URL</label>
         <input
-            id="historyUrl"
-            type="url"
-            placeholder="https://example.com"
+          id="websiteUrl"
+          type="url"
+          placeholder="https://example.com"
+          required
         >
-        <button id="changeHistoryButton" type="button">
-            Load Change History
+
+        <label for="websiteName">Website Name</label>
+        <input
+          id="websiteName"
+          type="text"
+          placeholder="Example Website"
+        >
+
+        <label for="interval">Monitoring Interval</label>
+        <select id="interval">
+          <option value="15">15 minutes</option>
+          <option value="30">30 minutes</option>
+          <option value="60" selected>1 hour</option>
+          <option value="180">3 hours</option>
+          <option value="360">6 hours</option>
+          <option value="720">12 hours</option>
+          <option value="1440">24 hours</option>
+        </select>
+
+        <button class="full-button" type="submit">
+          Add and Check Website
         </button>
-        <div id="changeHistory"></div>
+      </form>
+
+      <div id="addResult" class="result"></div>
     </section>
 
-    <footer>Website Change Detector · Local Dashboard</footer>
-</div>
+    <!-- MANUAL CHECK -->
+    <section class="card">
+      <h2>Check Website Now</h2>
+
+      <form id="checkForm">
+        <label for="manualUrl">Website URL</label>
+        <input
+          id="manualUrl"
+          type="url"
+          placeholder="https://example.com"
+          required
+        >
+
+        <button class="full-button" type="submit">
+          Check for Changes
+        </button>
+      </form>
+
+      <div id="checkResult" class="result"></div>
+    </section>
+
+    <!-- UPTIME CHECK -->
+    <section class="card">
+      <h2>Website Uptime</h2>
+
+      <form id="uptimeForm">
+        <label for="uptimeUrl">Website URL</label>
+        <input
+          id="uptimeUrl"
+          type="url"
+          placeholder="https://example.com"
+          required
+        >
+
+        <button class="full-button" type="submit">
+          Check Uptime
+        </button>
+      </form>
+
+      <button id="refreshUptime" class="secondary full-button">
+        Refresh Uptime Status
+      </button>
+
+      <div id="uptimeResult" class="result"></div>
+    </section>
+
+  </div>
+
+  <!-- MONITORED WEBSITES -->
+  <section class="card">
+    <div class="section-heading">
+      <h2>Monitored Websites</h2>
+      <button id="refreshWebsites">Refresh List</button>
+    </div>
+
+    <div id="websitesList" class="empty">
+      Loading monitored websites...
+    </div>
+  </section>
+
+ 
+<!-- CHANGE HISTORY -->
+<section class="card">
+    <div class="section-heading">
+        <h2>Change History and Screenshots</h2>
+
+        <div>
+            <button id="loadHistory" type="button">
+                Load History
+            </button>
+
+            <button id="compareScreenshots"
+                    class="secondary" type="button">
+                Compare Latest Screenshots
+            </button>
+        </div>
+    </div>
+
+    <label for="historyUrl">Filter by URL (optional)</label>
+
+    <input
+        id="historyUrl"
+        type="url"
+        placeholder="https://example.com"
+    >
+
+    <div id="comparisonArea"></div>
+
+    <div id="historyList" class="empty">
+        Click Load History to view previous checks.
+    </div>
+</section>
+
+  <!-- ALERTS -->
+  <section class="card">
+    <div class="section-heading">
+      <h2>Change Alerts</h2>
+      <button id="refreshAlerts">Refresh Alerts</button>
+    </div>
+
+    <div id="alertsList" class="empty">
+      Loading alerts...
+    </div>
+
+    <div class="grid">
+      <div>
+        <button id="testChange" class="secondary full-button">
+          Test Change Alert
+        </button>
+      </div>
+      <div>
+        <button id="testEmail" class="secondary full-button">
+          Test Email
+        </button>
+      </div>
+      <div>
+        <button id="testTelegram" class="secondary full-button">
+          Test Telegram
+        </button>
+      </div>
+      <div>
+        <button id="testNotifications" class="secondary full-button">
+          Test All Notifications
+        </button>
+      </div>
+    </div>
+
+    <div id="alertResult" class="result"></div>
+  </section>
+
+  <!-- UPTIME HISTORY -->
+  <section class="card">
+    <h2>Uptime History</h2>
+
+    <label for="uptimeHistoryUrl">Website URL (optional)</label>
+    <input
+      id="uptimeHistoryUrl"
+      type="url"
+      placeholder="https://example.com"
+    >
+
+    <button id="loadUptimeHistory">Load Uptime History</button>
+
+    <div id="uptimeHistoryList" class="empty">
+      No uptime history loaded.
+    </div>
+  </section>
+
+  <!-- SSL HISTORY -->
+  <section class="card">
+    <h2>SSL Certificate History</h2>
+    <button id="loadSslHistory">Load SSL History</button>
+    <button id="checkSsl" class="secondary">Check SSL Certificate</button>
+    <div id="sslResult" class="result"></div>
+    <div id="sslHistoryList" class="empty"></div>
+  </section>
+
+  <!-- BACKEND HEALTH -->
+  <section class="card">
+    <h2>Backend Health</h2>
+    <p class="muted">Check whether the FastAPI server is responding.</p>
+    <button id="healthCheck">Check Backend Health</button>
+    <div id="healthResult" class="result"></div>
+  </section>
+
+</main>
+
+<footer>
+  Website Change Detector · Monitoring Dashboard
+</footer>
 
 <script>
 "use strict";
 
-const $ = (id) => document.getElementById(id);
+/* --------------------------------------------------
+   API HELPER
+-------------------------------------------------- */
 
-function showMessage(id, message, isError = false) {
-    const el = $(id);
-    el.textContent = message;
-    el.className = "message " + (isError ? "error" : "success");
+const $ = id => document.getElementById(id);
+
+async function api(path, options = {}) {
+  const config = {
+    ...options,
+    headers: {
+      ...(options.body ? {
+        "Content-Type": "application/json"
+      } : {}),
+      ...(options.headers || {})
+    }
+  };
+
+  const response = await fetch(path, config);
+  const rawText = await response.text();
+
+  let data;
+
+  try {
+    data = rawText ? JSON.parse(rawText) : {};
+  } catch {
+    data = rawText;
+  }
+
+  if (!response.ok) {
+    const message =
+      data && typeof data === "object"
+        ? data.detail || data.message || JSON.stringify(data)
+        : data || `HTTP ${response.status}`;
+
+    throw new Error(message);
+  }
+
+  return data;
 }
 
-function safeText(value) {
-    return value === null || value === undefined || value === ""
-        ? "—"
-        : String(value);
+/* --------------------------------------------------
+   DISPLAY HELPERS
+-------------------------------------------------- */
+
+function showResult(id, value, success = true) {
+  const element = $(id);
+
+  element.style.display = "block";
+  element.className = "result " + (success ? "success" : "error");
+
+  if (typeof value === "string") {
+    element.textContent = value;
+  } else {
+    element.textContent = JSON.stringify(value, null, 2);
+  }
 }
 
-function makeItem(title, details) {
-    const item = document.createElement("div");
-    item.className = "item";
+function hideResult(id) {
+  $(id).style.display = "none";
+}
 
-    const heading = document.createElement("strong");
-    heading.textContent = title;
-    item.appendChild(heading);
+function setLoading(button, loading, originalText) {
+  button.disabled = loading;
+  button.textContent = loading ? "Please wait..." : originalText;
+}
 
+function formatDate(value) {
+  if (!value) return "Time unavailable";
+
+  const date = new Date(value);
+
+  return Number.isNaN(date.getTime())
+    ? String(value)
+    : date.toLocaleString();
+}
+
+function getArray(data) {
+  if (Array.isArray(data)) return data;
+
+  if (data && typeof data === "object") {
+    for (const key of [
+      "websites",
+      "items",
+      "history",
+      "alerts",
+      "results",
+      "records",
+      "data"
+    ]) {
+      if (Array.isArray(data[key])) return data[key];
+    }
+  }
+
+  return [];
+}
+
+function createItem(title, details) {
+  const item = document.createElement("article");
+  item.className = "list-item";
+
+  const heading = document.createElement("h3");
+  heading.textContent = title || "Website Record";
+  item.appendChild(heading);
+
+  if (details) {
     const paragraph = document.createElement("p");
+    paragraph.className = "muted";
     paragraph.textContent = details;
     item.appendChild(paragraph);
+  }
 
-    return item;
+  return item;
 }
 
-async function api(url, options = {}) {
-    const response = await fetch(url, options);
-    const text = await response.text();
+function createLink(url, text) {
+  const link = document.createElement("a");
 
-    let data = null;
-    if (text) {
-        try {
-            data = JSON.parse(text);
-        } catch {
-            data = { detail: text };
-        }
-    }
+  link.href = url;
+  link.textContent = text;
+  link.target = "_blank";
+  link.rel = "noopener noreferrer";
 
-    if (!response.ok) {
-        const message = data && data.detail
-            ? data.detail
-            : "Request failed: HTTP " + response.status;
-        throw new Error(message);
-    }
-
-    return data;
+  return link;
 }
 
-function jsonPost(url, body = {}) {
-    return api(url, {
-        method: "POST",
-        headers: {
-            "Content-Type": "application/json"
-        },
-        body: JSON.stringify(body)
+function normalizeScreenshotUrl(value) {
+  if (typeof value !== "string" || !value.trim()) {
+    return null;
+  }
+
+  const path = value.trim();
+
+  if (/^https?:\/\//i.test(path)) return path;
+  if (path.startsWith("/")) return path;
+
+  return "/" + path.replace(/^\.?\//, "");
+}
+
+/* --------------------------------------------------
+   ADD WEBSITE
+-------------------------------------------------- */
+
+$("addForm").addEventListener("submit", async event => {
+  event.preventDefault();
+
+  const button = event.submitter;
+  setLoading(button, true, "Add and Check Website");
+
+  const payload = {
+    url: $("websiteUrl").value.trim(),
+    name: $("websiteName").value.trim(),
+    interval_minutes: Number($("interval").value)
+  };
+
+  try {
+    const result = await api("/websites", {
+      method: "POST",
+      body: JSON.stringify(payload)
     });
-}
 
-/* Check website for content changes */
-$("checkForm").addEventListener("submit", async (event) => {
-    event.preventDefault();
+    showResult("addResult", result, true);
 
-    const url = $("websiteUrl").value.trim();
-    const button = $("checkButton");
-
-    button.disabled = true;
-    showMessage("checkMessage", "Checking website...");
-
-    try {
-        const result = await jsonPost("/check", { url });
-
-        showMessage(
-            "checkMessage",
-            result.message || "Website check completed."
-        );
-
-        await loadWebsites();
-        await loadAlerts();
-        await loadChangeHistory(url);
-        // Automatically refresh uptime status every 30 seconds
-        setInterval(() => {
-            loadUptimeStatus();
-        }, 30000);
-    } catch (error) {
-        showMessage("checkMessage", error.message, true);
-    } finally {
-        button.disabled = false;
-    }
+    await loadWebsites();
+    await loadHistory();
+  } catch (error) {
+    showResult("addResult", error.message, false);
+  } finally {
+    setLoading(button, false, "Add and Check Website");
+  }
 });
 
-/* Check uptime */
-$("uptimeForm").addEventListener("submit", async (event) => {
-    event.preventDefault();
+/* --------------------------------------------------
+   MANUAL WEBSITE CHECK
+-------------------------------------------------- */
 
-    const url = $("uptimeUrl").value.trim();
-    const button = $("uptimeButton");
+async function checkWebsite(url) {
+  try {
+    const result = await api("/check", {
+      method: "POST",
+      body: JSON.stringify({ url })
+    });
 
-    button.disabled = true;
-    showMessage("uptimeMessage", "Checking website uptime...");
+    showResult("checkResult", result, true);
 
-    try {
-        // Send JSON body, not an empty request.
-        const result = await jsonPost("/uptime/check", { url });
+    await loadWebsites();
+    await loadHistory();
 
-        const status = safeText(result.status || result.state);
-        const responseTime = result.response_time_ms;
-
-        let message = result.message || ("Status: " + status);
-
-        if (responseTime !== undefined && responseTime !== null) {
-            message += " | Response time: " + responseTime + " ms";
-        }
-
-        showMessage("uptimeMessage", message);
-
-        await loadUptimeStatus();
-        await loadUptimeHistory(url);
-    } catch (error) {
-        showMessage("uptimeMessage", error.message, true);
-    } finally {
-        button.disabled = false;
-    }
-});
-
-$("refreshUptimeButton").addEventListener("click", loadUptimeStatus);
-
-$("historyButton").addEventListener("click", async () => {
-    const url = $("uptimeUrl").value.trim();
-
-    if (!url) {
-        showMessage(
-            "uptimeMessage",
-            "Please enter a website URL first.",
-            true
-        );
-        return;
-    }
-
-    await loadUptimeHistory(url);
-});
-
-/* Load uptime status */
-/* Load uptime status */
-async function loadUptimeStatus() {
-    const container = $("uptimeStatus");
-    container.textContent = "Loading uptime status...";
-
-    try {
-        const data = await api("/uptime/status");
-
-        // API ke alag response formats ko support karein
-        const rows = Array.isArray(data)
-            ? data
-            : (
-                data && Array.isArray(data.websites)
-                    ? data.websites
-                    : (
-                        data && Array.isArray(data.results)
-                            ? data.results
-                            : []
-                    )
-            );
-
-        container.replaceChildren();
-        
-$("totalCount").textContent = rows.length;
-
-$("onlineCount").textContent = rows.filter((row) => {
-    const status = String(row.status || "").toUpperCase();
-    return status === "ONLINE" || status === "UP";
-}).length;
-
-$("offlineCount").textContent = rows.filter((row) => {
-    const status = String(row.status || "").toUpperCase();
-    return status !== "ONLINE" && status !== "UP";
-}).length;
-
-
-        if (rows.length === 0) {
-            container.textContent = "No uptime checks recorded yet.";
-            return;
-        }
-
-        rows.forEach((row) => {
-            const item = document.createElement("div");
-            item.className = "item";
-
-            const heading = document.createElement("strong");
-            heading.textContent = safeText(row.url);
-            item.appendChild(heading);
-
-            const status = String(row.status || "").toUpperCase();
-            const isOnline = status === "UP" || status === "ONLINE";
-
-            const statusLine = document.createElement("p");
-            statusLine.className = isOnline ? "online" : "offline";
-            statusLine.textContent =
-                "Status: " + (isOnline ? "ONLINE" : "OFFLINE");
-            item.appendChild(statusLine);
-
-            const httpLine = document.createElement("p");
-            httpLine.textContent =
-                "HTTP Status: " + safeText(row.http_status);
-            item.appendChild(httpLine);
-
-            const timeLine = document.createElement("p");
-            timeLine.textContent =
-                "Response Time: " +
-                (row.response_time_ms == null
-                    ? "—"
-                    : row.response_time_ms + " ms");
-            item.appendChild(timeLine);
-
-            const messageLine = document.createElement("p");
-            messageLine.textContent =
-                "Message: " + safeText(row.message);
-            item.appendChild(messageLine);
-
-            const checkedLine = document.createElement("p");
-            checkedLine.className = "muted";
-            checkedLine.textContent =
-                "Last Checked: " + safeText(row.checked_at);
-            item.appendChild(checkedLine);
-
-            const historyButton = document.createElement("button");
-            historyButton.textContent = "View History";
-
-            historyButton.addEventListener("click", () => {
-                $("uptimeUrl").value = row.url || "";
-                loadUptimeHistory(row.url || "");
-            });
-
-            item.appendChild(historyButton);
-            container.appendChild(item);
-        });
-
-    } catch (error) {
-        container.textContent =
-            "Could not load uptime status: " + error.message;
-    }
+    return result;
+  } catch (error) {
+    showResult("checkResult", error.message, false);
+    return null;
+  }
 }
 
-/* Load uptime history for one URL */
-async function loadUptimeHistory(url) {
-    const container = $("uptimeHistory");
-    container.textContent = "Loading uptime history...";
+$("checkForm").addEventListener("submit", async event => {
+  event.preventDefault();
 
-    if (!url) {
-        container.textContent = "Please enter a website URL.";
-        return;
-    }
+  const button = event.submitter;
+  setLoading(button, true, "Check for Changes");
 
-    try {
-        const data = await api(
-            "/uptime/history?url=" + encodeURIComponent(url)
-        );
+  await checkWebsite($("manualUrl").value.trim());
 
-        const rows = Array.isArray(data)
-            ? data
-            : (data && Array.isArray(data.history) ? data.history : []);
+  setLoading(button, false, "Check for Changes");
+});
 
-        container.replaceChildren();
+/* --------------------------------------------------
+   LOAD MONITORED WEBSITES
+-------------------------------------------------- */
 
-        if (rows.length === 0) {
-            container.textContent = "No uptime history found for this URL.";
-            return;
-        }
-
-        const tableWrap = document.createElement("div");
-        tableWrap.className = "table-wrap";
-
-        const table = document.createElement("table");
-        table.innerHTML =
-            "<thead><tr><th>Status</th><th>HTTP</th>" +
-            "<th>Response (ms)</th><th>Checked At</th></tr></thead>";
-
-        const tbody = document.createElement("tbody");
-
-        rows.forEach((row) => {
-            const tr = document.createElement("tr");
-
-            [
-                row.status,
-                row.http_status,
-                row.response_time_ms,
-                row.checked_at
-            ].forEach((value) => {
-                const td = document.createElement("td");
-                td.textContent = safeText(value);
-                tr.appendChild(td);
-            });
-
-            tbody.appendChild(tr);
-        });
-
-        table.appendChild(tbody);
-        tableWrap.appendChild(table);
-        container.appendChild(tableWrap);
-    } catch (error) {
-        container.textContent = "Could not load uptime history: " +
-            error.message;
-    }
-}
-
-/* List websites being monitored */
 async function loadWebsites() {
-    const container = $("websitesList");
-    container.textContent = "Loading websites...";
+  const root = $("websitesList");
+  root.textContent = "Loading websites...";
 
-    try {
-        const rows = await api("/websites");
-        container.replaceChildren();
+  try {
+    const data = await api("/websites");
+    const websites = getArray(data);
 
-        if (!Array.isArray(rows) || rows.length === 0) {
-            container.textContent = "No monitored websites yet.";
-            return;
-        }
+    root.replaceChildren();
 
-        rows.forEach((row) => {
-            container.appendChild(
-                makeItem(
-                    row.url,
-                    "Added: " + safeText(row.added_at) +
-                    " | Last checked: " + safeText(row.last_checked)
-                )
-            );
-        });
-    } catch (error) {
-        container.textContent = "Could not load websites: " + error.message;
+    if (!websites.length) {
+      root.textContent = "No monitored websites returned by the API.";
+      return;
     }
+
+    websites.forEach(site => {
+      const item = createItem(
+        site.name || site.title || site.url || "Monitored Website",
+        `URL: ${site.url || "—"}`
+      );
+
+      const status = document.createElement("span");
+      status.className = "badge";
+      status.textContent = "Status: " + (site.status || "UNKNOWN");
+      item.appendChild(status);
+
+      const interval = document.createElement("span");
+      interval.className = "badge";
+      interval.textContent =
+        "Interval: " + (site.interval_minutes ?? "—") + " min";
+      item.appendChild(interval);
+
+      if (site.url) {
+        const button = document.createElement("button");
+        button.textContent = "Check Now";
+
+        button.addEventListener("click", () => {
+          $("manualUrl").value = site.url;
+          checkWebsite(site.url);
+          window.scrollTo({ top: 0, behavior: "smooth" });
+        });
+
+        item.appendChild(document.createElement("br"));
+        item.appendChild(button);
+      }
+
+      root.appendChild(item);
+    });
+  } catch (error) {
+    root.textContent = "Unable to load websites: " + error.message;
+  }
 }
 
-/* Load website change alerts */
-async function loadAlerts() {
-    const container = $("alertsList");
-    container.textContent = "Loading alerts...";
+$("refreshWebsites").addEventListener("click", loadWebsites);
 
-    try {
-        const data = await api("/alerts");
-        const rows = Array.isArray(data)
-            ? data
-            : (data && Array.isArray(data.alerts) ? data.alerts : []);
+/* --------------------------------------------------
+   CHANGE HISTORY AND SCREENSHOTS
+-------------------------------------------------- */
 
-        container.replaceChildren();
 
-        if (rows.length === 0) {
-            container.textContent = "No change alerts yet.";
-            return;
-        }
 
-        rows.forEach((alert) => {
-            const item = document.createElement("div");
-            item.className = "item";
 
-            const heading = document.createElement("strong");
-            heading.textContent = safeText(alert.title);
-            item.appendChild(heading);
 
-            const url = document.createElement("p");
-            url.textContent = safeText(alert.url);
-            item.appendChild(url);
+function screenshotUrlForRecord(row) {
+    const value =
+        row.screenshot_url ||
+        row.screenshot_path ||
+        row.screenshot;
 
-            const message = document.createElement("p");
-            message.textContent = safeText(alert.message);
-            item.appendChild(message);
+    if (typeof value === "string" && value.trim()) {
+        const path = value.trim();
 
-            const date = document.createElement("p");
-            date.className = "muted";
-            date.textContent = "Created: " + safeText(alert.created_at);
-            item.appendChild(date);
+        if (/^https?:\/\//i.test(path)) return path;
 
-            if (!alert.is_read) {
-                const readButton = document.createElement("button");
-                readButton.textContent = "Mark as Read";
+        if (path.startsWith("/")) return path;
 
-                readButton.addEventListener("click", async () => {
-                    try {
-                        await jsonPost(
-                            "/alerts/" + encodeURIComponent(alert.id) + "/read"
-                        );
-                        await loadAlerts();
-                    } catch (error) {
-                        alert("Could not mark alert as read: " + error.message);
-                    }
-                });
-
-                item.appendChild(readButton);
-            }
-
-            container.appendChild(item);
-        });
-    } catch (error) {
-        container.textContent = "Could not load alerts: " + error.message;
+        return "/" + path.replace(/^\.?\//, "");
     }
+
+    // Use this fallback only if your FastAPI backend
+    // actually implements this screenshot endpoint.
+    if (row.id != null && row.has_screenshot === true) {
+        return "/snapshots/" + encodeURIComponent(row.id) + "/screenshot";
+    }
+
+    return null;
 }
 
-/* Create a test alert */
-$("testChangeButton").addEventListener("click", async () => {
-    try {
-        await jsonPost("/test-change");
-        await loadAlerts();
-        showMessage("checkMessage", "Test alert created.");
-    } catch (error) {
-        showMessage("checkMessage", error.message, true);
-    }
-});
 
-/* Load content change history */
-$("changeHistoryButton").addEventListener("click", async () => {
+async function fetchChangeHistory(url) {
+    const endpoint = "/history" +
+        (url ? "?url=" + encodeURIComponent(url) : "");
+
+    const data = await api(endpoint);
+
+    const rows = rowsFrom(
+        data,
+        "history",
+        "results",
+        "changes",
+        "records",
+        "items"
+    );
+
+    historyRecords = rows;
+    historyLoadedUrl = url;
+
+    return rows;
+}
+
+function addScreenshotToItem(item, row) {
+    const imageUrl = screenshotUrlForRecord(row);
+
+    if (!imageUrl) {
+        const note = document.createElement("p");
+        note.className = "muted";
+        note.textContent = "No screenshot path returned by the API.";
+        item.appendChild(note);
+        return;
+    }
+
+    const link = createLink(imageUrl, "Open Full Screenshot");
+    link.style.display = "inline-block";
+    link.style.marginTop = "10px";
+    item.appendChild(link);
+
+    const image = document.createElement("img");
+    image.className = "snapshot";
+    image.src = imageUrl;
+    image.alt = "Website screenshot";
+    image.loading = "lazy";
+
+    image.addEventListener("error", () => {
+        image.remove();
+
+        const note = document.createElement("p");
+        note.className = "muted";
+        note.textContent =
+            "Screenshot failed to load. Check the image URL and backend static-file route.";
+
+        item.appendChild(note);
+    });
+
+    item.appendChild(image);
+}
+
+async function loadHistory() {
+    const root = $("historyList");
     const url = $("historyUrl").value.trim();
 
-    if (!url) {
-        $("changeHistory").textContent =
-            "Please enter the website URL first.";
-        return;
-    }
+    $("comparisonArea").replaceChildren();
+    root.textContent = "Loading history...";
 
-    await loadChangeHistory(url);
-});
-
-async function loadChangeHistory(url) {
-    const container = $("changeHistory");
-    container.textContent = "Loading change history...";
+    historyRecords = [];
+    historyLoadedUrl = "";
 
     try {
-        const rows = await api(
-            "/history?url=" + encodeURIComponent(url)
-        );
+        const rows = await fetchChangeHistory(url);
 
-        container.replaceChildren();
+        root.replaceChildren();
 
-        if (!Array.isArray(rows) || rows.length === 0) {
-            container.textContent = "No change history found.";
+        if (!rows.length) {
+            root.textContent = "No history records found for this URL.";
             return;
         }
 
-        rows.forEach((row) => {
-            container.appendChild(
-                makeItem(
-                    safeText(row.title),
-                    "URL: " + safeText(row.url) +
-                    "\nChecked: " + safeText(row.checked_at) +
-                    "\nContent: " + safeText(row.content).slice(0, 500)
-                )
-            );
+        
+        rows.forEach(row => {
+            const item = document.createElement("article");
+            item.className = "item";
+
+            const heading = document.createElement("h3");
+            heading.textContent =
+                row.title || row.name || row.url || "Website Snapshot";
+            item.appendChild(heading);
+
+            const details = document.createElement("p");
+            details.className = "muted";
+            details.textContent =
+                "Snapshot ID: " + safeText(row.id) + "\n" +
+                "URL: " + safeText(row.url || url) + "\n" +
+                "Checked: " + formatDate(
+                    row.checked_at ||
+                    row.created_at ||
+                    row.timestamp ||
+                    row.date
+                );
+
+            item.appendChild(details);
+
+            if (row.changed === true || row.changed === 1) {
+                const badge = document.createElement("span");
+                badge.className = "badge red";
+                badge.textContent = "Content Changed";
+                item.appendChild(badge);
+            } else if (row.changed === false || row.changed === 0) {
+                const badge = document.createElement("span");
+                badge.className = "badge green";
+                badge.textContent = "No Change";
+                item.appendChild(badge);
+            }
+
+            // NEW: Show text difference summary
+            const diffSummary = document.createElement("div");
+            diffSummary.className = "text-diff-summary";
+
+            const added = document.createElement("p");
+            added.textContent = "Added lines: " + (Number(row.added_lines) || 0);
+            diffSummary.appendChild(added);
+
+            const removed = document.createElement("p");
+            removed.textContent = "Removed lines: " + (Number(row.removed_lines) || 0);
+            diffSummary.appendChild(removed);
+
+            const diffHeading = document.createElement("h4");
+            diffHeading.textContent = "Text Changes";
+            diffSummary.appendChild(diffHeading);
+
+            const diffText = document.createElement("pre");
+            diffText.className = "text-diff";
+            diffText.textContent = row.text_diff || "No text changes available.";
+            diffSummary.appendChild(diffText);
+
+            item.appendChild(diffSummary);
+
+            // Keep existing screenshot functionality
+            addScreenshotToItem(item, row);
+            
+            const visualButton = document.createElement("button");
+            visualButton.textContent = "Compare Visual Changes";
+
+            visualButton.addEventListener("click", async () => {
+                visualButton.disabled = true;
+                visualButton.textContent = "Comparing...";
+
+                try {
+                    const result = await api(
+                        `/history/${encodeURIComponent(row.id)}/visual-diff`
+                    );
+
+                    let diffImage = item.querySelector(".visual-diff-image");
+
+                    if (!diffImage) {
+                        diffImage = document.createElement("img");
+                        diffImage.className = "visual-diff-image";
+                        diffImage.alt = "Visual differences between screenshots";
+                        diffImage.style.width = "100%";
+                        diffImage.style.marginTop = "12px";
+                        item.appendChild(diffImage);
+                    }
+
+                    diffImage.src = result.visual_diff_url + "?t=" + Date.now();
+                    visualButton.textContent =
+                        "Pixel difference: " + result.mean_pixel_difference + "%";
+                } catch (error) {
+                    visualButton.textContent = "Comparison unavailable";
+                    console.error(error);
+                } finally {
+                    visualButton.disabled = false;
+                }
+            });
+
+            item.appendChild(visualButton);
+
+
+            root.appendChild(item);
         });
+
     } catch (error) {
-        container.textContent =
-            "Could not load change history: " + error.message;
+        root.textContent = "Unable to load history: " + error.message;
     }
 }
 
-/* Refresh buttons */
-$("refreshWebsitesButton").addEventListener("click", loadWebsites);
-$("refreshAlertsButton").addEventListener("click", loadAlerts);
+function renderComparisonPanel(row, heading) {
+    const panel = document.createElement("div");
+    panel.className = "comparison-panel";
 
-/* Load dashboard data at startup */
-loadWebsites();
-loadAlerts();
-loadUptimeStatus();
+    const title = document.createElement("h3");
+    title.textContent = heading;
+    panel.appendChild(title);
+
+    const info = document.createElement("p");
+    info.className = "muted";
+    info.textContent =
+        "Snapshot ID: " + safeText(row.id) + "\n" +
+        "Checked: " + formatDate(
+            row.checked_at ||
+            row.created_at ||
+            row.timestamp ||
+            row.date
+        );
+
+    panel.appendChild(info);
+
+    const imageUrl = screenshotUrlForRecord(row);
+
+    if (!imageUrl) {
+        const note = document.createElement("p");
+        note.textContent = "No screenshot available for this snapshot.";
+        panel.appendChild(note);
+        return panel;
+    }
+
+    const image = document.createElement("img");
+    image.src = imageUrl;
+    image.alt = heading;
+    image.loading = "lazy";
+
+    image.addEventListener("error", () => {
+        image.remove();
+
+        const note = document.createElement("p");
+        note.className = "muted";
+        note.textContent = "Screenshot could not be loaded.";
+        panel.appendChild(note);
+    });
+
+    panel.appendChild(image);
+
+    const link = createLink(imageUrl, "Open Full Screenshot");
+    link.style.display = "inline-block";
+    link.style.marginTop = "10px";
+    panel.appendChild(link);
+
+    return panel;
+}
+
+$("loadHistory").addEventListener("click", loadHistory);
+
+$("compareScreenshots").addEventListener("click", async () => {
+    const area = $("comparisonArea");
+    const url = $("historyUrl").value.trim();
+    const button = $("compareScreenshots");
+
+    area.replaceChildren();
+
+    if (!url) {
+        area.className = "message error";
+        area.textContent = "Enter a website URL first.";
+        return;
+    }
+
+    setLoading(button, true, "Compare Latest Screenshots");
+
+    try {
+        // Always fetch history for the currently selected URL.
+        const rows = await fetchChangeHistory(url);
+
+        // Sort newest first. API order should not be assumed.
+        const available = rows
+            .filter(row => screenshotUrlForRecord(row))
+            .sort((a, b) => {
+                const dateA = new Date(
+                    a.checked_at || a.created_at || a.timestamp || a.date || 0
+                ).getTime();
+
+                const dateB = new Date(
+                    b.checked_at || b.created_at || b.timestamp || b.date || 0
+                ).getTime();
+
+                if (Number.isFinite(dateA) && Number.isFinite(dateB) &&
+                    dateA !== dateB) {
+                    return dateB - dateA;
+                }
+
+                return Number(b.id || 0) - Number(a.id || 0);
+            });
+
+        if (available.length < 2) {
+            area.className = "message";
+            area.textContent =
+                "At least two snapshots with accessible screenshots are required. " +
+                "Run another check and verify that the API saves screenshot paths.";
+            return;
+        }
+
+        area.className = "";
+
+        const heading = document.createElement("h3");
+        heading.textContent = "Before vs After";
+        area.appendChild(heading);
+
+        const grid = document.createElement("div");
+        grid.className = "comparison-grid";
+
+        // Previous snapshot = Before; newest snapshot = After.
+        grid.appendChild(
+            renderComparisonPanel(available[1], "Before — Previous Screenshot")
+        );
+
+        grid.appendChild(
+            renderComparisonPanel(available[0], "After — Latest Screenshot")
+        );
+
+        area.appendChild(grid);
+
+    } catch (error) {
+        area.className = "message error";
+        area.textContent = "Comparison failed: " + error.message;
+    } finally {
+        setLoading(button, false, "Compare Latest Screenshots");
+    }
+});
+
+
+
+/* --------------------------------------------------
+   ALERTS
+-------------------------------------------------- */
+
+async function loadAlerts() {
+  const root = $("alertsList");
+  root.textContent = "Loading alerts...";
+
+  try {
+    const data = await api("/alerts");
+    const alerts = getArray(data);
+
+    root.replaceChildren();
+
+    if (!alerts.length) {
+      root.textContent = "No alerts found.";
+      return;
+    }
+
+    alerts.forEach(alertRecord => {
+      const item = createItem(
+        alertRecord.title ||
+        alertRecord.message ||
+        alertRecord.url ||
+        "Website Alert",
+        "Created: " +
+        formatDate(
+          alertRecord.created_at ||
+          alertRecord.timestamp ||
+          alertRecord.date
+        )
+      );
+
+      if (alertRecord.url) {
+        item.appendChild(
+          createLink(alertRecord.url, "Open Website")
+        );
+      }
+
+      if (alertRecord.message) {
+        const message = document.createElement("p");
+        message.textContent = alertRecord.message;
+        item.appendChild(message);
+      }
+
+      const alertId = alertRecord.id ?? alertRecord.alert_id;
+
+      if (alertId != null) {
+        const button = document.createElement("button");
+        button.textContent = "Mark as Read";
+
+        button.addEventListener("click", async () => {
+          try {
+            await api(
+              "/alerts/" + encodeURIComponent(alertId) + "/read",
+              { method: "POST" }
+            );
+
+            await loadAlerts();
+          } catch (error) {
+            showResult("alertResult", error.message, false);
+          }
+        });
+
+        item.appendChild(document.createElement("br"));
+        item.appendChild(button);
+      }
+
+      root.appendChild(item);
+    });
+  } catch (error) {
+    root.textContent = "Unable to load alerts: " + error.message;
+  }
+}
+
+$("refreshAlerts").addEventListener("click", loadAlerts);
+
+/* --------------------------------------------------
+   NOTIFICATION TESTS
+-------------------------------------------------- */
+
+async function runPostTest(endpoint, description) {
+  showResult("alertResult", "Running " + description + "...", true);
+
+  try {
+    const result = await api(endpoint, {
+      method: "POST",
+      body: JSON.stringify({})
+    });
+
+    showResult("alertResult", result, true);
+  } catch (error) {
+    showResult("alertResult", description + " failed: " + error.message, false);
+  }
+}
+
+$("testChange").addEventListener("click", () => {
+  runPostTest("/test-change", "change alert test");
+});
+
+$("testEmail").addEventListener("click", () => {
+  runPostTest("/test-email", "email test");
+});
+
+$("testTelegram").addEventListener("click", () => {
+  runPostTest("/test-telegram", "Telegram test");
+});
+
+$("testNotifications").addEventListener("click", () => {
+  runPostTest("/test-notifications", "notification test");
+});
+
+/* --------------------------------------------------
+   UPTIME CHECK
+-------------------------------------------------- */
+
+$("uptimeForm").addEventListener("submit", async event => {
+  event.preventDefault();
+
+  const button = event.submitter;
+  setLoading(button, true, "Check Uptime");
+
+  const url = $("uptimeUrl").value.trim();
+
+  try {
+    const result = await api("/uptime/check", {
+      method: "POST",
+      body: JSON.stringify({ url })
+    });
+
+    showResult("uptimeResult", result, true);
+  } catch (error) {
+    showResult("uptimeResult", error.message, false);
+  } finally {
+    setLoading(button, false, "Check Uptime");
+  }
+});
+
+async function loadUptimeStatus() {
+  try {
+    const result = await api("/uptime/status");
+    showResult("uptimeResult", result, true);
+  } catch (error) {
+    showResult("uptimeResult", error.message, false);
+  }
+}
+
+$("refreshUptime").addEventListener("click", loadUptimeStatus);
+
+/* --------------------------------------------------
+   UPTIME HISTORY
+-------------------------------------------------- */
+
+$("loadUptimeHistory").addEventListener("click", async () => {
+  const root = $("uptimeHistoryList");
+  root.textContent = "Loading uptime history...";
+
+  try {
+    const url = $("uptimeHistoryUrl").value.trim();
+
+    const endpoint = "/uptime/history" +
+      (url ? "?url=" + encodeURIComponent(url) : "");
+
+    const data = await api(endpoint);
+    const records = getArray(data);
+
+    root.replaceChildren();
+
+    if (!records.length) {
+      root.textContent = JSON.stringify(data, null, 2);
+      return;
+    }
+
+    records.forEach(record => {
+      const item = createItem(
+        record.url || "Uptime Record",
+        "Checked: " +
+        formatDate(
+          record.checked_at ||
+          record.created_at ||
+          record.timestamp
+        )
+      );
+
+      const status = document.createElement("span");
+      status.className =
+        "badge " +
+        (/online|up|success/i.test(record.status || "") ? "green" : "red");
+
+      status.textContent = "Status: " + (record.status || "Unknown");
+
+      item.appendChild(status);
+      root.appendChild(item);
+    });
+  } catch (error) {
+    root.textContent = "Unable to load uptime history: " + error.message;
+  }
+});
+
+/* --------------------------------------------------
+   SSL HISTORY AND CHECK
+-------------------------------------------------- */
+
+$("loadSslHistory").addEventListener("click", async () => {
+  const root = $("sslHistoryList");
+  root.textContent = "Loading SSL history...";
+
+  try {
+    const data = await api("/api/ssl-history");
+    root.textContent = JSON.stringify(data, null, 2);
+  } catch (error) {
+    root.textContent = "Unable to load SSL history: " + error.message;
+  }
+});
+
+$("checkSsl").addEventListener("click", async () => {
+  const url = $("uptimeUrl").value.trim() ||
+              $("websiteUrl").value.trim();
+
+  if (!url) {
+    showResult("sslResult", "Enter a website URL in the Uptime or Add Website section first.", false);
+    return;
+  }
+
+  try {
+    const result = await api("/api/ssl-check", {
+      method: "POST",
+      body: JSON.stringify({ url })
+    });
+
+    showResult("sslResult", result, true);
+  } catch (error) {
+    showResult("sslResult", error.message, false);
+  }
+});
+
+/* --------------------------------------------------
+   BACKEND HEALTH
+-------------------------------------------------- */
+
+$("healthCheck").addEventListener("click", async () => {
+  try {
+    const result = await api("/health");
+    showResult("healthResult", result, true);
+  } catch (error) {
+    showResult("healthResult", error.message, false);
+  }
+});
+
+
+
+// Screenshot URL helper
+
+let historyRecords = [];
+let historyLoadedUrl = "";
+
+function safeText(value) {
+    return value == null ? "—" : String(value);
+}
+
+function rowsFrom(data, ...keys) {
+    if (Array.isArray(data)) return data;
+
+    if (data && typeof data === "object") {
+        for (const key of keys) {
+            if (Array.isArray(data[key])) {
+                return data[key];
+            }
+        }
+    }
+
+    return [];
+}
+
+
+
+
+// Start dashboard
+
+let uptimeRefreshTimer = null;
+
+async function init() {
+    await Promise.allSettled([
+        loadWebsites(),
+        loadAlerts(),
+        loadUptimeStatus()
+    ]);
+
+    if (uptimeRefreshTimer === null) {
+        uptimeRefreshTimer = setInterval(loadUptimeStatus, 30000);
+    }
+}
+
+init();
+
 </script>
 </body>
 </html>
