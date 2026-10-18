@@ -130,6 +130,7 @@ http://127.0.0.1:8000
 Open the interactive API documentation at:
 
 http://127.0.0.1:8000/docs
+
 🔌 API Endpoints
 
 The following endpoints are available in the project dashboard or may be implemented in the backend. Confirm the exact paths in main.py or /docs before relying on them.
