@@ -130,6 +130,49 @@ http://127.0.0.1:8000
 Open the interactive API documentation at:
 
 http://127.0.0.1:8000/docs
+🔌 API Endpoints
+
+The following endpoints are available in the project dashboard or may be implemented in the backend. Confirm the exact paths in main.py or /docs before relying on them.
+
+Endpoint
+
+Purpose
+
+GET /
+
+Open the dashboard
+
+GET /docs
+
+Interactive API documentation
+
+GET /websites
+
+Retrieve monitored websites
+
+GET /alerts
+
+Retrieve change alerts
+
+GET /history?url=...
+
+Retrieve website snapshot history
+
+GET /snapshots/{id}/screenshot
+
+Retrieve a saved screenshot
+
+GET /history/{id}/visual-diff
+
+Retrieve visual comparison information, if implemented
+
+GET /uptime/status
+
+Retrieve uptime status, if implemented
+
+Other endpoints may be available for adding websites, checking changes, testing notifications, managing alerts, checking SSL certificates, and retrieving historical data.
+
+Use the actual routes defined in the running application as the source of truth
 
 ## 🚀 How to Use
 
